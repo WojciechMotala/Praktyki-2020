@@ -1,1 +1,1 @@
-# Praktyki_2020
+# Praktyki 2020
