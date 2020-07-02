@@ -2,44 +2,58 @@
 
 using namespace std;
 
-int main()
-{
+void changeLuminanceOfPixel(int8_t* buffer, int row, int col, int value) {
+    int position = row * 1920 + col;
+    buffer[position] = value;
+}
+
+
+int main() {
 
     FILE* f_in;
     FILE* f_out;
-    long fSize;
-    char* buffer;
-    size_t result;
+    int8_t* buffer;
 
-    fopen_s(&f_in, "in.yuv","rb");
+    int frameSizeInBytes = 3110400;
+    int countOfY = 2073600;
+    int countOfU = 51840;
+    int countOfV = 51840;
+    
+    fopen_s(&f_in, "in.yuv", "rb");
+    fopen_s(&f_out, "out.yuv", "wb");
 
-    // obtain file size:
-    fseek(f_in, 0, SEEK_END);
-    fSize = ftell(f_in);
-    rewind(f_in);
+    // allocate memory to contain the whole frame:
+    buffer = (int8_t*)malloc(frameSizeInBytes);
 
-    // allocate memory to contain the whole file:
-    buffer = (char*)malloc(sizeof(char) * fSize);
-    result = fread(buffer, 1, fSize, f_in);
-
-
-    // access to single pixel
-    for (int i = 0; i < 100000; i+=3) {
-        buffer[i] = 120;
-        buffer[i+1] = 120;
-        buffer[i+2] = 120;
-    }
+    while (!feof(f_in)) {
         
+        //load one frame YUV
+        fread(buffer, 1, frameSizeInBytes, f_in);
+        
+        //======================================================
+        // Operations at one frame 
+        //======================================================
+        for (int j = 10; j < 1920; j += 10) {
+            for (int i = 0; i < 1080; i++) {
+                changeLuminanceOfPixel(buffer, i, j, 0);
+            }
+        }
+        
+        for (int i = 0; i < 1920; i++) {
+            changeLuminanceOfPixel(buffer, 10, i, 0);
+        }
+        
+        //======================================================
 
+        //frite single frame to output file
+        fwrite(buffer, 1, frameSizeInBytes, f_out);
+
+    }
 
     fclose(f_in);
-
-    fopen_s(&f_out, "out.yuv", "wb");
-    fwrite(buffer, sizeof(buffer[1]), fSize, f_out);
     fclose(f_out);
+
     free(buffer);
 
     return 0;
 }
-
-
