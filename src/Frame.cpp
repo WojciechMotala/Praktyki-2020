@@ -243,8 +243,13 @@ uint8_t* Frame::gauss(uint8_t* I) {
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
+<<<<<<< HEAD
 				tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
 				//tempgI[j] = (tempI[j - 1 - iStrideWidthY] + tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + tempI[j - 1] + tempI[j] + tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY]) / 9;
+=======
+				//tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
+				tempgI[j] = (tempI[j - 1 - iStrideWidthY] + tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + tempI[j - 1] + tempI[j] + tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY]) / 9;
+>>>>>>> f8b81fc7abb06729086a208fc078e7e05381dda2
 		}
 		tempgI += iStrideWidthY;
 		tempI += iStrideWidthY;
