@@ -206,11 +206,30 @@ uint8_t* Frame::multiplyIxIy(uint8_t* Ix, uint8_t* Iy)
 		tempIy += iStrideWidthY;
 		tempIxIy += iStrideWidthY;
 	}
+
+	//************************************************************
+	tempIxIy = &IxIy[shiftY];
+	FILE* test;
+
+	fopen_s(&test, "testsobelIxIy.yuv", "wb");
+
+	for (int i = 0; i < iHeightY; i++) {
+		fwrite(tempIxIy + i * iStrideWidthY, 1, iWidthY, test);
+	}
+	for (int i = 0; i < iHeightU; i++) {
+		fwrite(bufU + i * iStrideWidthU, 1, iWidthU, test);
+	}
+	for (int i = 0; i < iHeightV; i++) {
+		fwrite(bufV + i * iStrideWidthV, 1, iWidthV, test);
+	}
+
+	fclose(test);
+	//************************************************************
 	
 	return IxIy;
 }
 
-uint8_t* Frame::gaussConvolve(uint8_t* I) {
+uint8_t* Frame::gauss(uint8_t* I) {
 
 	uint8_t* gI = new uint8_t[iStrideWidthY * iStrideHeightY];
 	
@@ -224,7 +243,8 @@ uint8_t* Frame::gaussConvolve(uint8_t* I) {
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
-				tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
+				//tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
+				tempgI[j] = (tempI[j - 1 - iStrideWidthY] + tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + tempI[j - 1] + tempI[j] + tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY]) / 9;
 		}
 		tempgI += iStrideWidthY;
 		tempI += iStrideWidthY;
@@ -256,15 +276,15 @@ uint8_t* Frame::harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy)
 {
 	uint8_t* r = new uint8_t[iStrideWidthY * iStrideHeightY];
 	
-	uint8_t* tempr = r;
+	uint8_t* tempr = &r[shiftY];
 	uint8_t* Ix2 = &gIx[shiftY];
 	uint8_t* Iy2 = &gIy[shiftY];
 	uint8_t* IxIy = &gIxIy[shiftY];
-	int k;
+	int k = 0.05;
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
-			tempr[j] = Ix2[j] * Iy2[j] - (IxIy[j] * IxIy[j]) - k * (Ix2[j] * Iy2[j]) * (Ix2[j] * Iy2[j]);
+			tempr[j] = (Ix2[j] * Iy2[j] - (IxIy[j] * IxIy[j])) - k * ((Ix2[j] + Iy2[j]) * (Ix2[j] + Iy2[j]));
 		}
 		tempr += iStrideWidthY;
 		Ix2 += iStrideWidthY;
@@ -273,5 +293,42 @@ uint8_t* Frame::harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy)
 	}
 
 	return r;
+}
+
+void Frame::colorCorners(uint8_t* harris) {
+
+	uint8_t* tempHarris = &harris[shiftY];
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			if (tempHarris[j] > 254) {
+				drawSquare(i, j);
+			}
+		}
+		tempHarris += iStrideWidthY;
+	}
+	
+
+}
+
+void Frame::drawSquare(int height, int width) {
+	uint8_t* tempBufY = bufY;
+
+	int position = width + (height * iStrideWidthY);
+
+	for (int k = position - 2; k <= position + 2; k++) {
+		//horizontal lines
+		tempBufY[k - 2 * iStrideWidthY] = 0;
+		tempBufY[k + 2 * iStrideWidthY] = 0;
+	}
+
+	tempBufY[position - 2] = 0;
+	tempBufY[position + 2] = 0;
+	tempBufY[position - 2 - iStrideWidthY] = 0;
+	tempBufY[position - 2 + iStrideWidthY] = 0;
+	tempBufY[position + 2 - iStrideWidthY] = 0;
+	tempBufY[position + 2 + iStrideWidthY] = 0;
+
+
 }
 

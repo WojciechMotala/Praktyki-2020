@@ -18,6 +18,7 @@ int main() {
         
         frame->getFrame(f_in);
 
+        // wyznaczenie linii 
         uint8_t* Ix = frame->getIx();
         uint8_t* Iy = frame->getIy();
 
@@ -26,13 +27,15 @@ int main() {
 
         uint8_t* IxIy = frame->multiplyIxIy(Ix, Iy);
 
-        uint8_t* gaussIx = frame->gaussConvolve(Ix);
-        uint8_t* gaussIy = frame->gaussConvolve(Iy);
-        uint8_t* gaussIxIy = frame->gaussConvolve(IxIy);
-
-        frame->saveFrame(f_out);
+        uint8_t* gaussIx = frame->gauss(Ix);
+        uint8_t* gaussIy = frame->gauss(Iy);
+        uint8_t* gaussIxIy = frame->gauss(IxIy);
 
         uint8_t* harris = frame->harris(gaussIx, gaussIy, gaussIxIy);
+
+        frame->colorCorners(harris);
+
+        frame->saveFrame(f_out);
 
         delete Ix;
         delete Iy;
@@ -40,6 +43,7 @@ int main() {
         delete gaussIx;
         delete gaussIy;
         delete gaussIxIy;
+        delete harris;
     //}
 
     fclose(f_in);
