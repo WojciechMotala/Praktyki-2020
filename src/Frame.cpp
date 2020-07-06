@@ -84,3 +84,194 @@ void Frame::saveFrame(FILE* outputFile) {
 	}
 
 }
+
+void Frame::harrisCornerDetector() {
+
+}
+
+uint8_t* Frame::getIx() {
+	uint8_t* Ix = new uint8_t[iStrideWidthY * iStrideHeightY];
+	
+	uint8_t* tempBufY = bufY;
+	uint8_t* tempIx = &Ix[shiftY];
+
+	
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			int maskValue = tempBufY[j - 1 - iStrideWidthY] + 2 * tempBufY[j - iStrideWidthY] + tempBufY[j + 1 - iStrideWidthY] - tempBufY[j - 1 + iStrideWidthY] - 2 * tempBufY[j + iStrideWidthY] - tempBufY[j + 1 + iStrideWidthY];
+			if (maskValue < 0) {
+				tempIx[j] = 0;
+			}
+			else {
+				tempIx[j] = maskValue;
+			}
+		
+		}
+		tempBufY += iStrideWidthY;
+		tempIx += iStrideWidthY;
+	}
+	
+	//************************************************************
+	tempIx = &Ix[shiftY];
+	FILE* test;
+	
+	fopen_s(&test, "testPoziomSobel.yuv", "wb");
+
+	for (int i = 0; i < iHeightY; i++) {
+		fwrite(tempIx + i * iStrideWidthY, 1, iWidthY, test);
+	}
+	for (int i = 0; i < iHeightU; i++) {
+		fwrite(bufU + i * iStrideWidthU, 1, iWidthU, test);
+	}
+	for (int i = 0; i < iHeightV; i++) {
+		fwrite(bufV + i * iStrideWidthV, 1, iWidthV, test);
+	}
+	
+	fclose(test);
+	//************************************************************
+
+	return Ix;
+}
+
+uint8_t* Frame::getIy() {
+
+	uint8_t* Iy = new uint8_t[iStrideWidthY * iStrideHeightY];
+
+	uint8_t* tempBufY = bufY;
+	uint8_t* tempIy = &Iy[shiftY];
+
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			int maskValue = -1 * tempBufY[j - 1 - iStrideWidthY] - 2 * tempBufY[j - 1] - tempBufY[j + iStrideWidthY - 1] + tempBufY[j + 1 - iStrideWidthY] + 2 * tempBufY[j + 1] + tempBufY[j + 1 + iStrideWidthY];
+			if (maskValue < 0) {
+				tempIy[j] = 0;
+			}
+			else {
+				tempIy[j] = maskValue;
+			}
+		}
+		tempBufY += iStrideWidthY;
+		tempIy += iStrideWidthY;
+	}
+
+	//************************************************************
+	tempIy = &Iy[shiftY];
+	FILE* test;
+
+	fopen_s(&test, "testPionSobel.yuv", "wb");
+
+	for (int i = 0; i < iHeightY; i++) {
+		fwrite(tempIy + i * iStrideWidthY, 1, iWidthY, test);
+	}
+	for (int i = 0; i < iHeightU; i++) {
+		fwrite(bufU + i * iStrideWidthU, 1, iWidthU, test);
+	}
+	for (int i = 0; i < iHeightV; i++) {
+		fwrite(bufV + i * iStrideWidthV, 1, iWidthV, test);
+	}
+
+	fclose(test);
+	//************************************************************
+
+	return Iy;
+}
+
+void Frame::squareI(uint8_t* I) {
+
+	uint8_t* tempI = &I[shiftY];
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			tempI[j] = tempI[j] * tempI[j];
+		}
+		tempI += iStrideWidthY;
+	}
+
+}
+
+uint8_t* Frame::multiplyIxIy(uint8_t* Ix, uint8_t* Iy)
+{
+	uint8_t* IxIy = new uint8_t[iStrideWidthY * iStrideHeightY];
+
+	uint8_t* tempIx = &Ix[shiftY];
+	uint8_t* tempIy = &Iy[shiftY];
+	uint8_t* tempIxIy = &IxIy[shiftY];
+	
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			tempIxIy[j] = tempIx[j] * tempIy[j];
+		}
+		tempIx += iStrideWidthY;
+		tempIy += iStrideWidthY;
+		tempIxIy += iStrideWidthY;
+	}
+	
+	return IxIy;
+}
+
+uint8_t* Frame::gaussConvolve(uint8_t* I) {
+
+	uint8_t* gI = new uint8_t[iStrideWidthY * iStrideHeightY];
+	
+	uint8_t* tempgI = &gI[shiftY];
+	uint8_t* tempI = &I[shiftY];
+
+	// gauss filtr:
+	// 1/16, 2/16, 1/16
+	// 2/16, 4/16, 2/16
+	// 1/16, 2/16, 1/16
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+				tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
+		}
+		tempgI += iStrideWidthY;
+		tempI += iStrideWidthY;
+	}
+
+	//************************************************************
+	tempgI = &gI[shiftY];
+	FILE* test;
+
+	fopen_s(&test, "testGauss.yuv", "wb");
+
+	for (int i = 0; i < iHeightY; i++) {
+		fwrite(tempgI + i * iStrideWidthY, 1, iWidthY, test);
+	}
+	for (int i = 0; i < iHeightU; i++) {
+		fwrite(bufU + i * iStrideWidthU, 1, iWidthU, test);
+	}
+	for (int i = 0; i < iHeightV; i++) {
+		fwrite(bufV + i * iStrideWidthV, 1, iWidthV, test);
+	}
+
+	fclose(test);
+	//************************************************************
+	
+	return gI;
+}
+
+uint8_t* Frame::harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy)
+{
+	uint8_t* r = new uint8_t[iStrideWidthY * iStrideHeightY];
+	
+	uint8_t* tempr = r;
+	uint8_t* Ix2 = &gIx[shiftY];
+	uint8_t* Iy2 = &gIy[shiftY];
+	uint8_t* IxIy = &gIxIy[shiftY];
+	int k;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			tempr[j] = Ix2[j] * Iy2[j] - (IxIy[j] * IxIy[j]) - k * (Ix2[j] * Iy2[j]) * (Ix2[j] * Iy2[j]);
+		}
+		tempr += iStrideWidthY;
+		Ix2 += iStrideWidthY;
+		Iy2 += iStrideWidthY;
+		IxIy += iStrideWidthY;
+	}
+
+	return r;
+}
+

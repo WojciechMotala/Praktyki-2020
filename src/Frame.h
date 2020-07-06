@@ -43,5 +43,13 @@ public:
 
 	void getFrame(FILE* inputFile);
 	void saveFrame(FILE* outputFile);
+	void harrisCornerDetector();
 
+	uint8_t* getIx();
+	uint8_t* getIy();
+
+	void squareI(uint8_t* I);
+	uint8_t* multiplyIxIy(uint8_t* Ix, uint8_t* Iy);
+	uint8_t* gaussConvolve(uint8_t* I);
+	uint8_t* harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy);
 };
