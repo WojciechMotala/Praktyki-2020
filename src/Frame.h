@@ -53,6 +53,7 @@ public:
 	uint8_t* gauss(uint8_t* I);
 	uint8_t* harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy);
 
-	void colorCorners(uint8_t* harris);
+	void checkCorners(uint8_t* harris);
 	void drawSquare(int height, int width);
+	void saveTopgm();
 };

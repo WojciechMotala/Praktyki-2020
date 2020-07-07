@@ -100,7 +100,7 @@ uint8_t* Frame::getIx() {
 		for (int j = 0; j < iWidthY; j++) {
 			int maskValue = tempBufY[j - 1 - iStrideWidthY] + 2 * tempBufY[j - iStrideWidthY] + tempBufY[j + 1 - iStrideWidthY] - tempBufY[j - 1 + iStrideWidthY] - 2 * tempBufY[j + iStrideWidthY] - tempBufY[j + 1 + iStrideWidthY];
 			if (maskValue < 0) {
-				tempIx[j] = 0;
+				tempIx[j] = 1;
 			}
 			else {
 				tempIx[j] = maskValue;
@@ -145,7 +145,7 @@ uint8_t* Frame::getIy() {
 		for (int j = 0; j < iWidthY; j++) {
 			int maskValue = -1 * tempBufY[j - 1 - iStrideWidthY] - 2 * tempBufY[j - 1] - tempBufY[j + iStrideWidthY - 1] + tempBufY[j + 1 - iStrideWidthY] + 2 * tempBufY[j + 1] + tempBufY[j + 1 + iStrideWidthY];
 			if (maskValue < 0) {
-				tempIy[j] = 0;
+				tempIy[j] = 1;
 			}
 			else {
 				tempIy[j] = maskValue;
@@ -211,7 +211,7 @@ uint8_t* Frame::multiplyIxIy(uint8_t* Ix, uint8_t* Iy)
 	tempIxIy = &IxIy[shiftY];
 	FILE* test;
 
-	fopen_s(&test, "testsobelIxIy.yuv", "wb");
+	fopen_s(&test, "testIxIy.yuv", "wb");
 
 	for (int i = 0; i < iHeightY; i++) {
 		fwrite(tempIxIy + i * iStrideWidthY, 1, iWidthY, test);
@@ -236,25 +236,41 @@ uint8_t* Frame::gauss(uint8_t* I) {
 	uint8_t* tempgI = &gI[shiftY];
 	uint8_t* tempI = &I[shiftY];
 
-	// gauss filtr:
+	// filtr:
 	// 1/16, 2/16, 1/16
 	// 2/16, 4/16, 2/16
 	// 1/16, 2/16, 1/16
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
-				tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
-				//tempgI[j] = (tempI[j - 1 - iStrideWidthY] + tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + tempI[j - 1] + tempI[j] + tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY]) / 9;
+				//tempgI[j] = ( tempI[j - 1 - iStrideWidthY] + 2* tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + 2* tempI[j - 1] + 4* tempI[j] + 2* tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + 2* tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY] ) / 16;
+				tempgI[j] = (tempI[j - 1 - iStrideWidthY] + tempI[j - iStrideWidthY] + tempI[j + 1 - iStrideWidthY] + tempI[j - 1] + tempI[j] + tempI[j + 1] + tempI[j - 1 + iStrideWidthY] + tempI[j + iStrideWidthY] + tempI[j + 1 + iStrideWidthY]) / 9;
 		}
 		tempgI += iStrideWidthY;
 		tempI += iStrideWidthY;
 	}
 
 	//************************************************************
+	static int no = 0;
 	tempgI = &gI[shiftY];
 	FILE* test;
 
-	fopen_s(&test, "testGauss.yuv", "wb");
+	switch (no)
+	{
+	case 0:
+		fopen_s(&test, "testGaussIx.yuv", "wb");
+		break;
+	case 1:
+		fopen_s(&test, "testGaussIy.yuv", "wb");
+		break;
+	case 2:
+		fopen_s(&test, "testGaussIxIy.yuv", "wb");
+		break;
+	default:
+		fopen_s(&test, "testGauss.yuv", "wb");
+		break;
+	}
+	no++;
 
 	for (int i = 0; i < iHeightY; i++) {
 		fwrite(tempgI + i * iStrideWidthY, 1, iWidthY, test);
@@ -280,7 +296,7 @@ uint8_t* Frame::harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy)
 	uint8_t* Ix2 = &gIx[shiftY];
 	uint8_t* Iy2 = &gIy[shiftY];
 	uint8_t* IxIy = &gIxIy[shiftY];
-	int k = 0.05;
+	int k = 0.04; //0.04-0.06
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
@@ -295,7 +311,7 @@ uint8_t* Frame::harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy)
 	return r;
 }
 
-void Frame::colorCorners(uint8_t* harris) {
+void Frame::checkCorners(uint8_t* harris) {
 
 	uint8_t* tempHarris = &harris[shiftY];
 
@@ -308,7 +324,6 @@ void Frame::colorCorners(uint8_t* harris) {
 		tempHarris += iStrideWidthY;
 	}
 	
-
 }
 
 void Frame::drawSquare(int height, int width) {
@@ -329,6 +344,27 @@ void Frame::drawSquare(int height, int width) {
 	tempBufY[position + 2 - iStrideWidthY] = 0;
 	tempBufY[position + 2 + iStrideWidthY] = 0;
 
+}
+
+void Frame::saveTopgm()
+{
+	//************************************************************
+	uint8_t* tempY = bufY;
+	FILE* test;
+
+	fopen_s(&test, "TESTpgm.pgm", "wb");
+
+	//pgm format 
+	const char* tekst = "P5\n1920 1080\n255\n";
+	fwrite(tekst,sizeof(char), strlen(tekst),test);
+	
+	for (int i = 0; i < iHeightY; i++) {	
+		fwrite(tempY, 1, iWidthY, test);
+		tempY += iStrideWidthY;
+	}
+
+	fclose(test);
+	//************************************************************
 
 }
 
