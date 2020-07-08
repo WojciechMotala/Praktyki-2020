@@ -39,7 +39,7 @@ private:
 
 
 public:
-	Frame(int imageWidth, int imageHeight, int strideWidth, int strideHeight);
+	Frame(int imageWidth, int imageHeight, float strideWidth, float strideHeight);
 	~Frame();
 
 	void getFrame(FILE* inputFile);
@@ -62,6 +62,8 @@ public:
 	int getStrideWidthY();
 	int getWidthY();
 	int getHeightY();
+
+	void correctFramePosition(int moveX, int moveY);
 
 	uint8_t* getBufY () const;
 

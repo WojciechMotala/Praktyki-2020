@@ -1,6 +1,6 @@
 #include "Frame.h"
 
-Frame::Frame(int imageWidth, int imageHeight, int strideWidth, int strideHeight) {
+Frame::Frame(int imageWidth, int imageHeight, float strideWidth, float strideHeight) {
 	
 	this->iWidthY = imageWidth;
 	this->iHeightY = imageHeight;
@@ -13,13 +13,13 @@ Frame::Frame(int imageWidth, int imageHeight, int strideWidth, int strideHeight)
 
 	// size of buffors
 	if (strideWidth != 0 and strideHeight != 0) {
-		this->iStrideWidthY = iWidthY + iWidthY / strideWidth;
-		this->iStrideWidthU = iWidthU + iWidthV / strideWidth;
-		this->iStrideWidthV = iWidthV + iWidthV / strideWidth;
+		this->iStrideWidthY = iWidthY + iWidthY * strideWidth;
+		this->iStrideWidthU = iWidthU + iWidthV * strideWidth;
+		this->iStrideWidthV = iWidthV + iWidthV * strideWidth;
 
-		this->iStrideHeightY = iHeightY + iHeightY / strideHeight;
-		this->iStrideHeightU = iHeightU + iHeightU / strideHeight;
-		this->iStrideHeightV = iHeightV + iHeightV / strideHeight;
+		this->iStrideHeightY = iHeightY + iHeightY * strideHeight;
+		this->iStrideHeightU = iHeightU + iHeightU * strideHeight;
+		this->iStrideHeightV = iHeightV + iHeightV * strideHeight;
 	}
 	else {
 		this->iStrideWidthY = iWidthY;
@@ -360,6 +360,7 @@ void Frame::drawSquare(std::list<ezsift::SiftKeypoint> kpt_list){
 
 }
 
+
 void Frame::saveTopgm()
 {
 	//************************************************************
@@ -392,6 +393,96 @@ int Frame::getWidthY() {
 
 int Frame::getHeightY() {
 	return iHeightY;
+}
+
+void Frame::correctFramePosition(int changeX, int changeY) {
+	
+	uint8_t* oldBufY = bufY;
+	uint8_t* oldBufU = bufU;
+	uint8_t* oldBufV = bufV;
+	
+	uint8_t* tempBufY = new uint8_t[iWidthY * iHeightY];
+	uint8_t* ptempBufY = tempBufY;
+
+	uint8_t* tempBufU = new uint8_t[iWidthU * iHeightU];
+	uint8_t* ptempBufU = tempBufU;
+	uint8_t* tempBufV = new uint8_t[iWidthV * iHeightV];
+	uint8_t* ptempBufV = tempBufV;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			ptempBufY[j] = oldBufY[j]; //przepisanie wiersza ze straego bufora
+			oldBufY[j] = 0;
+		}
+		ptempBufY += iWidthY;
+		oldBufY += iStrideWidthY;
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+			ptempBufU[j] = oldBufU[j]; //przepisanie wiersza ze straego bufora
+			oldBufU[j] = 0;
+		}
+		ptempBufU += iWidthU;
+		oldBufU += iStrideWidthU;
+	}
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+			ptempBufV[j] = oldBufV[j]; //przepisanie wiersza ze straego bufora
+			oldBufV[j] = 0;
+		}
+		ptempBufV += iWidthV;
+		oldBufV += iStrideWidthV;
+	}
+
+	//umieszczenie wsk na poczatek zapisu
+	// - 
+	oldBufY = bufY;
+	oldBufY += changeX + changeY * iStrideWidthY;
+
+
+	oldBufU = bufU;
+	oldBufU += changeX/2 + changeY/2 * iStrideWidthU;
+	oldBufV = bufV;
+	oldBufV += changeX/2 + changeY/2 * iStrideWidthV;
+
+	ptempBufY = tempBufY;
+
+	ptempBufU = tempBufU;
+	ptempBufV = tempBufV;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			//printf("i:%d j:%d chX:%d chY:%d", i, j, changeX, changeY );
+			//std::cout << std::endl << i << " " << j << changeX << " " << changeY << std::endl;
+			oldBufY[j] = ptempBufY[j];
+		}
+		ptempBufY += iWidthY;
+		oldBufY += iStrideWidthY;
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+			//std::cout << std::endl << i << " " << j << std::endl;
+			oldBufU[j] = ptempBufU[j];
+		}
+		ptempBufU += iWidthU;
+		oldBufU += iStrideWidthU;
+	}
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+			//std::cout << std::endl << i << " " << j << std::endl;
+			oldBufV[j] = ptempBufV[j];
+		}
+		ptempBufV += iWidthV;
+		oldBufV += iStrideWidthV;
+	}
+
+	//oldBufY = nullptr;
+	delete[] tempBufY;
+	delete[] tempBufU;
+	delete[] tempBufV;
+
 }
 
 uint8_t* Frame::getBufY() const
