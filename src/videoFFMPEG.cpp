@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <string>
 #include "Frame.h"
 #include "ezsift.h"
 
@@ -12,70 +13,58 @@ int main() {
     fopen_s(&f_in, "in.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
 
-    // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in % 
-    Frame* frame = new Frame(1920, 1080, 10, 10);
+    // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
+    Frame* pframe = new Frame(1920, 1080, 10, 10);
+    Frame* pframeNext = new Frame(1920, 1080, 10, 10);
 
-    //while (!feof(f_in)) {
+    while (!feof(f_in)) {
         
-        frame->getFrame(f_in);
-        frame->saveTopgm();
-        // wyznaczenie linii 
-        uint8_t* Ix = frame->getIx();
-        uint8_t* Iy = frame->getIy();
+        pframe->getFrame(f_in);
+        pframeNext->getFrame(f_in);
 
-        frame->squareI(Ix);
-        frame->squareI(Iy);
+        ezsift::Image<uint8_t> imageFirst;
+        ezsift::Image<uint8_t> imageSecond;
 
-        uint8_t* IxIy = frame->multiplyIxIy(Ix, Iy);
+        const uint8_t* pframeBufY = pframe->getBufY();
+        int iframeWidth = pframe->getWidthY();
+        int iframeHeight = pframe->getHeightY();
+        int iframeStrideWidthY = pframe->getStrideWidthY();
 
-        uint8_t* gaussIx = frame->gauss(Ix);
-        uint8_t* gaussIy = frame->gauss(Iy);
-        uint8_t* gaussIxIy = frame->gauss(IxIy);
+        const uint8_t* pframeNextBufY = pframeNext->getBufY();
+        int iframeNextWidth = pframeNext->getWidthY();
+        int iframeNextHeight = pframeNext->getHeightY();
+        int iframeNextStrideWidthY = pframeNext->getStrideWidthY();
 
-        uint8_t* harris = frame->harris(gaussIx, gaussIy, gaussIxIy);
+        imageFirst.read_pgm_direct(pframeBufY, iframeWidth, iframeHeight, iframeStrideWidthY);
+        imageSecond.read_pgm_direct(pframeNextBufY, iframeNextWidth, iframeNextHeight, iframeNextStrideWidthY);
         
-        frame->checkCorners(harris);
+        // Detect keypoints
+        list<ezsift::SiftKeypoint> kpt_list_first;
+        list<ezsift::SiftKeypoint> kpt_list_second;
+        bool bExtractDescriptor = true;
+
+        sift_cpu(imageFirst, kpt_list_first, bExtractDescriptor);
+        sift_cpu(imageSecond, kpt_list_second, bExtractDescriptor);
+
+        // Match keypoints.
+        list<ezsift::MatchPair> match_list;
+        match_keypoints(kpt_list_first, kpt_list_second, match_list);
         
-        frame->saveFrame(f_out);
+        // draw frame of keypoints on image
+        pframe->drawSquare(kpt_list_first);
+        pframeNext->drawSquare(kpt_list_second);
 
-        delete Ix;
-        delete Iy;
-        delete IxIy;
-        delete gaussIx;
-        delete gaussIy;
-        delete gaussIxIy;
-        delete harris;
-   // }
+        // save frame to output file
+        pframe->saveFrame(f_out);
+        pframeNext->saveFrame(f_out);
 
+    }
+   
     fclose(f_in);
     fclose(f_out);
-
-    delete frame;
     
-    //************************************
-    //ezSIFT:
-
-    ezsift::Image<uint8_t> image1, image2;
-    image1.read_pgm("test1.pgm");
-    image2.read_pgm("test2.pgm");
-
-    // Detect keypoints
-    list<ezsift::SiftKeypoint> kpt_list1, kpt_list2;
-    bool bExtractDescriptor = true;
-    sift_cpu(image1, kpt_list1, bExtractDescriptor);
-    sift_cpu(image2, kpt_list2, bExtractDescriptor);
-
-    draw_keypoints_to_ppm_file("output1.ppm", image1, kpt_list1);
-    draw_keypoints_to_ppm_file("output2.ppm", image2, kpt_list2);
-    // Match keypoints.
-    list<ezsift::MatchPair> match_list;
-    match_keypoints(kpt_list1, kpt_list2, match_list);
-
-    // Draw result image.
-    draw_match_lines_to_ppm_file("output_1match2.ppm", image1, image2, match_list);
-    printf("Number of matched keypoints: %d\n", match_list.size());
-
-    //************************************
-
+    delete pframe;
+    delete pframeNext;
+    
     return 0;
 }

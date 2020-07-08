@@ -50,6 +50,7 @@ namespace ezsift {
         void release();
 
         int read_pgm(const char* filename);
+        int read_pgm_direct(const uint8_t* imgData, int width, int height, int strideWidth);
         int write_pgm(const char* filename);
 
         Image<unsigned char> to_uchar() const;
@@ -196,6 +197,31 @@ namespace ezsift {
 
         return 0;
     }
+
+    template <typename T>
+    int Image<T>::read_pgm_direct(const uint8_t* imgData, int width, int height, int strideWidth)
+    {
+
+        const uint8_t* tempY = imgData;
+        
+        w = width;
+        h = height;
+
+        init(w, h);
+
+        uint8_t* tempData = data;
+        
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                tempData[j] = tempY[j];
+            }
+            tempData += width;
+            tempY += strideWidth;
+        }
+
+        return 0;
+    }
+
 
     template <typename T>
     int Image<T>::write_pgm(const char* filename)

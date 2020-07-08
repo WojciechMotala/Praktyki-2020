@@ -346,6 +346,20 @@ void Frame::drawSquare(int height, int width) {
 
 }
 
+void Frame::drawSquare(std::list<ezsift::SiftKeypoint> kpt_list){
+
+	std::list<ezsift::SiftKeypoint>::iterator it;
+
+	for (it = kpt_list.begin(); it != kpt_list.end(); it++) {
+
+		int iRow = (int)it->r;
+		int iCol = (int)it->c;
+
+		drawSquare(iRow, iCol);
+	}
+
+}
+
 void Frame::saveTopgm()
 {
 	//************************************************************
@@ -366,5 +380,22 @@ void Frame::saveTopgm()
 	fclose(test);
 	//************************************************************
 
+}
+
+int Frame::getStrideWidthY() {
+	return iStrideWidthY;
+}
+
+int Frame::getWidthY() {
+	return iWidthY;
+}
+
+int Frame::getHeightY() {
+	return iHeightY;
+}
+
+uint8_t* Frame::getBufY() const
+{
+	return bufY;
 }
 

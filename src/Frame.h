@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include "ezsift.h"
 
 class Frame {
 private:
@@ -55,5 +56,13 @@ public:
 
 	void checkCorners(uint8_t* harris);
 	void drawSquare(int height, int width);
+	void drawSquare(std::list<ezsift::SiftKeypoint> kpt_list);
 	void saveTopgm();
+
+	int getStrideWidthY();
+	int getWidthY();
+	int getHeightY();
+
+	uint8_t* getBufY () const;
+
 };
