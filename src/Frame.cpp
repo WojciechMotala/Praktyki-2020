@@ -538,7 +538,7 @@ void Frame::correctFrameRotation(float theta) {
 	ptempBufU = tempBufU;
 	ptempBufV = tempBufV;
 
-	theta = (theta * 3.14159265359) / 180;
+	//theta = (theta * 3.14159265359) / 180;
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {

@@ -75,7 +75,8 @@ float calculateRotationAngle(list<ezsift::MatchPair> match_list) {
         iCounter++;
     }
 
-    fAngle /= iCounter;
+    if(iCounter != 0)
+        fAngle /= iCounter;
 
     return fAngle;
 }
@@ -119,12 +120,14 @@ int main() {
     FILE* f_in;
     FILE* f_out;
     
+    bool bRotation = false;
+    bool bTranslation = true;
+
     fopen_s(&f_in, "in_srednie.yuv", "rb");
-    //fopen_s(&f_in, "out_sama_rotacja.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
-    Frame* pframe = new Frame(1920, 1080, 2.5, 2.5);
+    Frame* pframe = new Frame(1920, 1080, 1.0, 1.0);
     Frame* pframeNext;
     
     bool bfirstFrame = true;
@@ -133,7 +136,7 @@ int main() {
    
         while (!feof(f_in)) {
             
-            pframeNext = new Frame(1920, 1080, 2.5, 2.5);
+            pframeNext = new Frame(1920, 1080, 1.0, 1.0);
             pframeNext->getFrame(f_in);
 
             if (feof(f_in))
@@ -168,31 +171,32 @@ int main() {
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
 
-            // rotation compensation
-                //float fRotationAngle = calculateRotationAngle(match_list);
+            if (bRotation) {
+                // rotation compensation
+                float fRotationAngle = calculateRotationAngle(match_list);
                 //float fRotationAngle = calculateCenterRotationAngle(match_list, iframeNextWidth, iframeNextHeight);
-                //0.78rad = 45*
-                
-                pframeNext->correctFrameRotation(90);
-                
+                if (fRotationAngle != 0)
+                    pframeNext->correctFrameRotation(fRotationAngle);
+            }
 
-                
-            // translation compensation 
-                //int* moveXY = moveCompensation(match_list);
-                //pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
-                
+            if (bTranslation) {
+                // translation compensation 
+                int* moveXY = moveCompensation(match_list);
+                pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
+            }
+
             // save frame to output file
             if (bfirstFrame) {
                 pframe->saveFrame(f_out);
                 bfirstFrame = false;
             }
+
             pframeNext->saveFrame(f_out);
 
             // memory manage
             delete pframe;
             pframe = pframeNext;
 
-            break;
         }
     
     fclose(f_in);
