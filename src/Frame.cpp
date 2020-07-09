@@ -115,7 +115,7 @@ uint8_t* Frame::getIx() {
 	tempIx = &Ix[shiftY];
 	FILE* test;
 	
-	fopen_s(&test, "testPoziomSobel.yuv", "wb");
+	fopen_s(&test, "stepsResult/testPoziomSobel.yuv", "wb");
 
 	for (int i = 0; i < iHeightY; i++) {
 		fwrite(tempIx + i * iStrideWidthY, 1, iWidthY, test);
@@ -159,7 +159,7 @@ uint8_t* Frame::getIy() {
 	tempIy = &Iy[shiftY];
 	FILE* test;
 
-	fopen_s(&test, "testPionSobel.yuv", "wb");
+	fopen_s(&test, "stepsResult/testPionSobel.yuv", "wb");
 
 	for (int i = 0; i < iHeightY; i++) {
 		fwrite(tempIy + i * iStrideWidthY, 1, iWidthY, test);
@@ -211,7 +211,7 @@ uint8_t* Frame::multiplyIxIy(uint8_t* Ix, uint8_t* Iy)
 	tempIxIy = &IxIy[shiftY];
 	FILE* test;
 
-	fopen_s(&test, "testIxIy.yuv", "wb");
+	fopen_s(&test, "stepsResult/testIxIy.yuv", "wb");
 
 	for (int i = 0; i < iHeightY; i++) {
 		fwrite(tempIxIy + i * iStrideWidthY, 1, iWidthY, test);
@@ -258,16 +258,16 @@ uint8_t* Frame::gauss(uint8_t* I) {
 	switch (no)
 	{
 	case 0:
-		fopen_s(&test, "testGaussIx.yuv", "wb");
+		fopen_s(&test, "stepsResult/testGaussIx.yuv", "wb");
 		break;
 	case 1:
-		fopen_s(&test, "testGaussIy.yuv", "wb");
+		fopen_s(&test, "stepsResult/testGaussIy.yuv", "wb");
 		break;
 	case 2:
-		fopen_s(&test, "testGaussIxIy.yuv", "wb");
+		fopen_s(&test, "stepsResult/testGaussIxIy.yuv", "wb");
 		break;
 	default:
-		fopen_s(&test, "testGauss.yuv", "wb");
+		fopen_s(&test, "stepsResult/testGauss.yuv", "wb");
 		break;
 	}
 	no++;
@@ -367,7 +367,7 @@ void Frame::saveTopgm()
 	uint8_t* tempY = bufY;
 	FILE* test;
 
-	fopen_s(&test, "TESTpgm.pgm", "wb");
+	fopen_s(&test, "stepsResult/TESTpgm.pgm", "wb");
 
 	//pgm format 
 	const char* tekst = "P5\n1920 1080\n255\n";
@@ -395,23 +395,26 @@ int Frame::getHeightY() {
 	return iHeightY;
 }
 
-void Frame::correctFramePosition(int changeX, int changeY) {
+void Frame::correctFramePosition(int moveX, int moveY) {
 	
 	uint8_t* oldBufY = bufY;
 	uint8_t* oldBufU = bufU;
 	uint8_t* oldBufV = bufV;
 	
-	uint8_t* tempBufY = new uint8_t[iWidthY * iHeightY];
-	uint8_t* ptempBufY = tempBufY;
+	// temp buffors to copy data
+	uint8_t* const tempBufY = new uint8_t[iWidthY * iHeightY];
+	uint8_t* const tempBufU = new uint8_t[iWidthU * iHeightU];
+	uint8_t* const tempBufV = new uint8_t[iWidthV * iHeightV];
 
-	uint8_t* tempBufU = new uint8_t[iWidthU * iHeightU];
+	// pointers to temp buffors
+	uint8_t* ptempBufY = tempBufY;
 	uint8_t* ptempBufU = tempBufU;
-	uint8_t* tempBufV = new uint8_t[iWidthV * iHeightV];
 	uint8_t* ptempBufV = tempBufV;
 
+	// copy data Y U V to temp buffors
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
-			ptempBufY[j] = oldBufY[j]; //przepisanie wiersza ze straego bufora
+			ptempBufY[j] = oldBufY[j]; 
 			oldBufY[j] = 0;
 		}
 		ptempBufY += iWidthY;
@@ -420,41 +423,40 @@ void Frame::correctFramePosition(int changeX, int changeY) {
 
 	for (int i = 0; i < iHeightU; i++) {
 		for (int j = 0; j < iWidthU; j++) {
-			ptempBufU[j] = oldBufU[j]; //przepisanie wiersza ze straego bufora
+			ptempBufU[j] = oldBufU[j]; 
 			oldBufU[j] = 0;
 		}
 		ptempBufU += iWidthU;
 		oldBufU += iStrideWidthU;
 	}
+
 	for (int i = 0; i < iHeightV; i++) {
 		for (int j = 0; j < iWidthV; j++) {
-			ptempBufV[j] = oldBufV[j]; //przepisanie wiersza ze straego bufora
+			ptempBufV[j] = oldBufV[j]; 
 			oldBufV[j] = 0;
 		}
 		ptempBufV += iWidthV;
 		oldBufV += iStrideWidthV;
 	}
 
-	//umieszczenie wsk na poczatek zapisu
+	// set pointers on corrected X Y positions
 	// - 
 	oldBufY = bufY;
-	oldBufY += changeX + changeY * iStrideWidthY;
-
+	oldBufY += moveX + moveY * iStrideWidthY;
 
 	oldBufU = bufU;
-	oldBufU += changeX/2 + changeY/2 * iStrideWidthU;
+	oldBufU += moveX/2 + moveY/2 * iStrideWidthU;
+
 	oldBufV = bufV;
-	oldBufV += changeX/2 + changeY/2 * iStrideWidthV;
+	oldBufV += moveX/2 + moveY/2 * iStrideWidthV;
 
 	ptempBufY = tempBufY;
-
 	ptempBufU = tempBufU;
 	ptempBufV = tempBufV;
 
+	// reload Y U V data with corected X Y move
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
-			//printf("i:%d j:%d chX:%d chY:%d", i, j, changeX, changeY );
-			//std::cout << std::endl << i << " " << j << changeX << " " << changeY << std::endl;
 			oldBufY[j] = ptempBufY[j];
 		}
 		ptempBufY += iWidthY;
@@ -463,7 +465,6 @@ void Frame::correctFramePosition(int changeX, int changeY) {
 
 	for (int i = 0; i < iHeightU; i++) {
 		for (int j = 0; j < iWidthU; j++) {
-			//std::cout << std::endl << i << " " << j << std::endl;
 			oldBufU[j] = ptempBufU[j];
 		}
 		ptempBufU += iWidthU;
@@ -471,19 +472,123 @@ void Frame::correctFramePosition(int changeX, int changeY) {
 	}
 	for (int i = 0; i < iHeightV; i++) {
 		for (int j = 0; j < iWidthV; j++) {
-			//std::cout << std::endl << i << " " << j << std::endl;
 			oldBufV[j] = ptempBufV[j];
 		}
 		ptempBufV += iWidthV;
 		oldBufV += iStrideWidthV;
 	}
 
-	//oldBufY = nullptr;
+	// delete temp buffors
 	delete[] tempBufY;
 	delete[] tempBufU;
 	delete[] tempBufV;
 
 }
+
+void Frame::correctFrameRotation(float theta) {
+
+	uint8_t* oldBufY = bufY;
+	uint8_t* oldBufU = bufU;
+	uint8_t* oldBufV = bufV;
+
+	// temp buffors to copy data
+	uint8_t* const tempBufY = new uint8_t[iWidthY * iHeightY];
+	uint8_t* const tempBufU = new uint8_t[iWidthU * iHeightU];
+	uint8_t* const tempBufV = new uint8_t[iWidthV * iHeightV];
+
+	// pointers to temp buffors
+	uint8_t* ptempBufY = tempBufY;
+	uint8_t* ptempBufU = tempBufU;
+	uint8_t* ptempBufV = tempBufV;
+
+	// copy data Y U V to temp buffors
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			ptempBufY[j] = oldBufY[j];
+			oldBufY[j] = 0;
+		}
+		ptempBufY += iWidthY;
+		oldBufY += iStrideWidthY;
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+			ptempBufU[j] = oldBufU[j];
+			//oldBufU[j] = 0;
+		}
+		ptempBufU += iWidthU;
+		oldBufU += iStrideWidthU;
+	}
+
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+			ptempBufV[j] = oldBufV[j];
+			//oldBufV[j] = 0;
+		}
+		ptempBufV += iWidthV;
+		oldBufV += iStrideWidthV;
+	}
+
+	// set pointers on start positions
+	oldBufY = bufY;
+	oldBufU = bufU;
+	oldBufV = bufV;
+
+	ptempBufY = tempBufY;
+	ptempBufU = tempBufU;
+	ptempBufV = tempBufV;
+
+	theta = (theta * 3.14159265359) / 180;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+
+			int iNewX = round( cos(theta) * (j - iWidthY / 2) - sin(theta) * (i - iHeightY / 2) + iWidthY / 2);
+			int iNewY = round( sin(theta) * (j - iWidthY / 2) + cos(theta) * (i - iHeightY / 2) + iHeightY / 2);
+			
+			oldBufY[iNewX + (iNewY-i) * iStrideWidthY] = ptempBufY[j];
+
+		}
+		ptempBufY += iWidthY;
+		oldBufY += iStrideWidthY;
+		
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+
+
+			int iNewX = round(cos(theta) * (j - iWidthU / 2) - sin(theta) * (i - iHeightU / 2) + iWidthU / 2);
+			int iNewY = round(sin(theta) * (j - iWidthU / 2) + cos(theta) * (i - iHeightU / 2) + iHeightU / 2);
+
+			oldBufU[iNewX + (iNewY - i) * iStrideWidthU] = ptempBufU[j];
+		}
+		ptempBufU += iWidthU;
+		oldBufU += iStrideWidthU;
+
+	}
+
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+
+			
+			int iNewX = round(cos(theta) * (j - iWidthU / 2) - sin(theta) * (i - iHeightU / 2) + iWidthU / 2);
+			int iNewY = round(sin(theta) * (j - iWidthU / 2) + cos(theta) * (i - iHeightU / 2) + iHeightU / 2);
+
+			oldBufV[iNewX + (iNewY - i) * iStrideWidthV] = ptempBufV[j];
+		}
+		ptempBufV += iWidthV;
+		oldBufV += iStrideWidthV;
+
+	}
+	
+	// delete temp buffors
+	delete[] tempBufY;
+	delete[] tempBufU;
+	delete[] tempBufV;
+
+}
+
 
 uint8_t* Frame::getBufY() const
 {

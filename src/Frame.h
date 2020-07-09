@@ -64,6 +64,8 @@ public:
 	int getHeightY();
 
 	void correctFramePosition(int moveX, int moveY);
+	void correctFrameRotation(float theta);
+	void correctBoth(int moveX, int moveY, float theta);
 
 	uint8_t* getBufY () const;
 

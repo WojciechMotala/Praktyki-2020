@@ -1,7 +1,10 @@
 ﻿#include <iostream>
-#include <string>
+#include <math.h>
+#include <vector>
 #include "Frame.h"
 #include "ezsift.h"
+
+#define PI 3.14159265359
 
 using namespace std;
 
@@ -46,16 +49,82 @@ int* moveCompensation(list<ezsift::MatchPair> match_list) {
 
 }
 
+float calculateRotationAngle(list<ezsift::MatchPair> match_list) {
+
+    list<ezsift::MatchPair>::iterator pair;
+
+    float fAngle = 0.0;
+    int iCounter = 0;
+
+    // loop through every matched pair
+    for (pair = match_list.begin(); pair != match_list.end(); pair++) {
+
+        if ((pair->c1 == pair->c2) && (pair->r1 == pair->r2))
+            continue;
+
+        // slope of a straight line
+        float fA1 = (float)pair->r1 / (float)pair->c1;
+        float fA2 = (float)pair->r2 / (float)pair->c2;
+
+        float fThetaA1 = atan(fA1);
+        float fThetaA2 = atan(fA2);
+
+        float fTheta = abs(fThetaA1 - fThetaA2);
+
+        fAngle += fTheta;
+        iCounter++;
+    }
+
+    fAngle /= iCounter;
+
+    return fAngle;
+}
+
+float calculateCenterRotationAngle(list<ezsift::MatchPair> match_list, int width, int height) {
+
+    list<ezsift::MatchPair>::iterator pair;
+
+    float fAngle = 0.0;
+    int iCounter = 0;
+
+    int iCenterX = width / 2;
+    int iCenterY = height / 2;
+
+    // loop through every matched pair
+    for (pair = match_list.begin(); pair != match_list.end(); pair++) {
+
+        if ((pair->c1 == pair->c2) && (pair->r1 == pair->r2))
+            continue;
+
+        // slope of a straight line
+        float fA1 = ((float)iCenterY - (float)pair->r1) / ((float)iCenterX - (float)pair->c1);
+        float fA2 = ((float)iCenterY - (float)pair->r2) / ((float)iCenterX - (float)pair->c2);
+
+        float fThetaA1 = atan(fA1);
+        float fThetaA2 = atan(fA2);
+
+        float fTheta = fThetaA1 - fThetaA2;
+
+        fAngle += fTheta;
+        iCounter++;
+    }
+
+    fAngle /= iCounter;
+
+    return fAngle;
+}
+
 int main() {
 
     FILE* f_in;
     FILE* f_out;
     
-    fopen_s(&f_in, "in.yuv", "rb");
+    fopen_s(&f_in, "in_srednie.yuv", "rb");
+    //fopen_s(&f_in, "out_sama_rotacja.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
-    Frame* pframe = new Frame(1920, 1080, .5, .5);
+    Frame* pframe = new Frame(1920, 1080, 2.5, 2.5);
     Frame* pframeNext;
     
     bool bfirstFrame = true;
@@ -64,7 +133,7 @@ int main() {
    
         while (!feof(f_in)) {
             
-            pframeNext = new Frame(1920, 1080, 0.5, 0.5);
+            pframeNext = new Frame(1920, 1080, 2.5, 2.5);
             pframeNext->getFrame(f_in);
 
             if (feof(f_in))
@@ -98,10 +167,20 @@ int main() {
             list<ezsift::MatchPair> match_list;
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
-            // X Y move compensation 
-            int* moveXY = moveCompensation(match_list);
-            pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
-            
+
+            // rotation compensation
+                //float fRotationAngle = calculateRotationAngle(match_list);
+                //float fRotationAngle = calculateCenterRotationAngle(match_list, iframeNextWidth, iframeNextHeight);
+                //0.78rad = 45*
+                
+                pframeNext->correctFrameRotation(90);
+                
+
+                
+            // translation compensation 
+                //int* moveXY = moveCompensation(match_list);
+                //pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
+                
             // save frame to output file
             if (bfirstFrame) {
                 pframe->saveFrame(f_out);
@@ -112,6 +191,8 @@ int main() {
             // memory manage
             delete pframe;
             pframe = pframeNext;
+
+            break;
         }
     
     fclose(f_in);
