@@ -39,7 +39,9 @@ private:
 
 
 public:
+	Frame() {};
 	Frame(int imageWidth, int imageHeight, float strideWidth, float strideHeight);
+	void FrameCopy(const Frame& source);
 	~Frame();
 
 	void getFrame(FILE* inputFile);
@@ -57,6 +59,7 @@ public:
 	void checkCorners(uint8_t* harris);
 	void drawSquare(int height, int width);
 	void drawSquare(std::list<ezsift::SiftKeypoint> kpt_list);
+	void drawSquare(std::list<ezsift::MatchPair> match_list, bool firstFrame);
 	void saveTopgm();
 
 	int getStrideWidthY();
@@ -65,8 +68,11 @@ public:
 
 	void correctFramePosition(int moveX, int moveY);
 	void correctFrameRotation(float theta);
-	void correctBoth(int moveX, int moveY, float theta);
 
 	uint8_t* getBufY () const;
+
+	void filtration();
+
+	void clearImage();
 
 };

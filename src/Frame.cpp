@@ -51,6 +51,79 @@ Frame::Frame(int imageWidth, int imageHeight, float strideWidth, float strideHei
 
 }
 
+void Frame::FrameCopy(const Frame& source) {
+	this->iWidthY = source.iWidthY;
+	this->iHeightY = source.iHeightY;
+
+	this->iWidthU = source.iWidthU;
+	this->iHeightU = source.iHeightU;
+
+	this->iWidthV = source.iWidthV;
+	this->iHeightV = source.iHeightV;
+
+	// size of buffors
+
+	this->iStrideWidthY = source.iStrideWidthY;
+	this->iStrideWidthU = source.iStrideWidthU;
+	this->iStrideWidthV = source.iStrideWidthV;
+
+	this->iStrideHeightY = source.iStrideHeightY;
+	this->iStrideHeightU = source.iStrideHeightU;
+	this->iStrideHeightV = source.iStrideHeightV;
+
+	// length of data
+	this->iTotalLengthY = source.iTotalLengthY;
+	this->iTotalLengthU = source.iTotalLengthU;
+	this->iTotalLengthV = source.iTotalLengthV;
+
+	this->orgBufY = new uint8_t[iStrideWidthY * iStrideHeightY];
+	this->orgBufU = new uint8_t[iStrideWidthU * iStrideHeightU];
+	this->orgBufV = new uint8_t[iStrideWidthV * iStrideHeightV];
+
+	this->shiftY = source.shiftY;
+	this->shiftU = source.shiftU;
+	this->shiftV = source.shiftV;
+
+	this->bufY = &orgBufY[shiftY];
+	this->bufU = &orgBufU[shiftU];
+	this->bufV = &orgBufV[shiftV];
+
+
+	uint8_t* tmpBufY = bufY;
+	uint8_t* tmpBufU = bufU;
+	uint8_t* tmpBufV = bufV;
+
+	uint8_t* tmpSourceBufY = source.bufY;
+	uint8_t* tmpSourceBufU = source.bufU;
+	uint8_t* tmpSourceBufV = source.bufV;
+
+	//copy bufors data
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			tmpBufY[j] = tmpSourceBufY[j];
+		}
+		tmpBufY += iStrideWidthY;
+		tmpSourceBufY += iStrideWidthY;
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+			tmpBufU[j] = tmpSourceBufU[j];
+		}
+		tmpBufU += iStrideWidthU;
+		tmpSourceBufU += iStrideWidthU;
+	}
+
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+			tmpBufV[j] = tmpSourceBufV[j];
+		}
+		tmpBufV += iStrideWidthV;
+		tmpSourceBufV += iStrideWidthV;
+	}
+
+}
+
 Frame::~Frame() {
 	delete[] orgBufY;
 	delete[] orgBufU;
@@ -360,6 +433,28 @@ void Frame::drawSquare(std::list<ezsift::SiftKeypoint> kpt_list){
 
 }
 
+void Frame::drawSquare(std::list<ezsift::MatchPair> match_list, bool firstFrame) {
+
+	std::list<ezsift::MatchPair>::iterator pair;
+
+	for (pair = match_list.begin(); pair != match_list.end(); pair++) {
+
+		if (firstFrame) {
+			int iRow = (int)pair->r1;
+			int iCol = (int)pair->c1;
+
+			drawSquare(iRow, iCol);
+		}
+		else {
+			int iRow = (int)pair->r2;
+			int iCol = (int)pair->c2;
+
+			drawSquare(iRow, iCol);
+		}
+
+	}
+}
+
 
 void Frame::saveTopgm()
 {
@@ -589,9 +684,58 @@ void Frame::correctFrameRotation(float theta) {
 
 }
 
-
 uint8_t* Frame::getBufY() const
 {
 	return bufY;
+}
+
+void Frame::filtration() {
+
+	uint8_t* tempBufY = bufY;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			tempBufY[j] = tempBufY[j - 1 - iStrideWidthY] / 9 +
+				tempBufY[j - iStrideWidthY] / 9 +
+				tempBufY[j + 1 - iStrideWidthY] / 9 +
+				tempBufY[j - 1] / 9 +
+				tempBufY[j] / 9 +
+				tempBufY[j + 1] / 9 +
+				tempBufY[j - 1 + iStrideWidthY] / 9 +
+				tempBufY[j + iStrideWidthY] / 9 +
+				tempBufY[j + 1 + iStrideWidthY] / 9;
+		}
+		tempBufY += iStrideWidthY;
+	}
+
+}
+
+void Frame::clearImage() {
+
+	uint8_t* tempBufY = bufY;
+	uint8_t* tempBufU = bufU;
+	uint8_t* tempBufV = bufV;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			tempBufY[j] = 255;
+		}
+		tempBufY += iStrideWidthY;
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+			tempBufU[j] = 128;
+		}
+		tempBufU += iStrideWidthU;
+	}
+
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+			tempBufV[j] = 128;
+		}
+		tempBufV += iStrideWidthV;
+	}
+
 }
 

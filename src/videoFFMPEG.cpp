@@ -62,14 +62,22 @@ float calculateRotationAngle(list<ezsift::MatchPair> match_list) {
         if ((pair->c1 == pair->c2) && (pair->r1 == pair->r2))
             continue;
 
+        /*
         // slope of a straight line
         float fA1 = (float)pair->r1 / (float)pair->c1;
         float fA2 = (float)pair->r2 / (float)pair->c2;
 
         float fThetaA1 = atan(fA1);
         float fThetaA2 = atan(fA2);
+        */
 
-        float fTheta = abs(fThetaA1 - fThetaA2);
+        //-----
+        float Theta1 = atan2((float)pair->r1, (float)pair->c1);
+        float Theta2 = atan2((float)pair->r2, (float)pair->c2);
+        float fTheta = Theta1 - Theta2;
+        //-----
+
+        //float fTheta = fThetaA1 - fThetaA2;
 
         fAngle += fTheta;
         iCounter++;
@@ -120,24 +128,42 @@ int main() {
     FILE* f_in;
     FILE* f_out;
     
-    bool bRotation = false;
-    bool bTranslation = true;
 
-    fopen_s(&f_in, "in_srednie.yuv", "rb");
+    bool bRotation = false;
+    bool bTranslation = false;
+    bool bDrawCharacteristicPoints = true;
+    bool bOnlyCharacteristicPoints = true;
+
+    fopen_s(&f_in, "out_ROTACJA_TRANSLACJA_00.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
     Frame* pframe = new Frame(1920, 1080, 1.0, 1.0);
     Frame* pframeNext;
+
+    Frame* pframeCopy = new Frame();
+    Frame* pframeNextCopy;
     
     bool bfirstFrame = true;
 
     pframe->getFrame(f_in);
-   
+
+    if (bDrawCharacteristicPoints) {
+        // copy of frame to mark characteristic points
+        pframeCopy->FrameCopy(*pframe);
+    }
+    
         while (!feof(f_in)) {
             
             pframeNext = new Frame(1920, 1080, 1.0, 1.0);
+            pframeNextCopy = new Frame();
+
             pframeNext->getFrame(f_in);
+
+            if (bDrawCharacteristicPoints) {
+                // copy of frame to mark characteristic points
+                pframeNextCopy->FrameCopy(*pframeNext);
+            }
 
             if (feof(f_in))
                 break;
@@ -155,48 +181,94 @@ int main() {
             int iframeNextHeight = pframeNext->getHeightY();
             int iframeNextStrideWidthY = pframeNext->getStrideWidthY();
 
-            imageFirst.read_pgm_direct(pframeBufY, iframeWidth, iframeHeight, iframeStrideWidthY);
-            imageSecond.read_pgm_direct(pframeNextBufY, iframeNextWidth, iframeNextHeight, iframeNextStrideWidthY);
-
             // Detect keypoints
             list<ezsift::SiftKeypoint> kpt_list_first;
             list<ezsift::SiftKeypoint> kpt_list_second;
+            list<ezsift::MatchPair> match_list;
             bool bExtractDescriptor = true;
+
+            imageFirst.read_pgm_direct(pframeBufY, iframeWidth, iframeHeight, iframeStrideWidthY);
+            imageSecond.read_pgm_direct(pframeNextBufY, iframeNextWidth, iframeNextHeight, iframeNextStrideWidthY);
 
             sift_cpu(imageFirst, kpt_list_first, bExtractDescriptor);
             sift_cpu(imageSecond, kpt_list_second, bExtractDescriptor);
 
             // Match keypoints.
-            list<ezsift::MatchPair> match_list;
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
+            if (bDrawCharacteristicPoints) {
 
+                if (bfirstFrame && pframeCopy != nullptr) {
+                    //pframeCopy->drawSquare(kpt_list_first);
+                    if (bOnlyCharacteristicPoints)
+                        pframeCopy->clearImage();
+
+                    pframeCopy->drawSquare(match_list, true);
+                }
+                
+                if (pframeNextCopy != nullptr) {
+                    //pframeNextCopy->drawSquare(kpt_list_second);
+                    if(bOnlyCharacteristicPoints)
+                        pframeNextCopy->clearImage();
+                    
+                    pframeNextCopy->drawSquare(match_list, false);
+                }
+            }
+            
             if (bRotation) {
                 // rotation compensation
                 float fRotationAngle = calculateRotationAngle(match_list);
                 //float fRotationAngle = calculateCenterRotationAngle(match_list, iframeNextWidth, iframeNextHeight);
-                if (fRotationAngle != 0)
+                if (fRotationAngle != 0) {
                     pframeNext->correctFrameRotation(fRotationAngle);
+                    
+                    if(bDrawCharacteristicPoints)
+                        pframeNextCopy->correctFrameRotation(fRotationAngle);
+                }
+                    
             }
+
 
             if (bTranslation) {
                 // translation compensation 
                 int* moveXY = moveCompensation(match_list);
                 pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
+                //pframeNext->filtration();
+
+                if (bDrawCharacteristicPoints)
+                    //pframeNextCopy->filtration();
+                    pframeNextCopy->correctFramePosition(moveXY[0], moveXY[1]);
             }
+
+            
 
             // save frame to output file
             if (bfirstFrame) {
-                pframe->saveFrame(f_out);
+
+                if (bDrawCharacteristicPoints) {
+                    pframeCopy->saveFrame(f_out);
+                    delete pframeCopy;
+                }
+                else {
+                    pframe->saveFrame(f_out);
+                }
+
                 bfirstFrame = false;
             }
 
-            pframeNext->saveFrame(f_out);
+            if (bDrawCharacteristicPoints) {
+                pframeNextCopy->saveFrame(f_out);
+                delete pframeNextCopy;
+            }
+            else {
+                pframeNext->saveFrame(f_out);
+            }
+            
 
             // memory manage
             delete pframe;
             pframe = pframeNext;
-
+            
         }
     
     fclose(f_in);
