@@ -1,6 +1,8 @@
 ﻿#include <iostream>
 #include <math.h>
 #include <vector>
+#include <array>
+#include <fstream>
 #include "Frame.h"
 #include "ezsift.h"
 
@@ -16,7 +18,7 @@ int* moveCompensation(list<ezsift::MatchPair> match_list) {
     list<ezsift::MatchPair>::iterator pair;
     int counterX = 0;
     int counterY = 0;
-
+    
     // loop through every matched pair
     for (pair = match_list.begin(); pair != match_list.end(); pair++) {
 
@@ -123,18 +125,74 @@ float calculateCenterRotationAngle(list<ezsift::MatchPair> match_list, int width
     return fAngle;
 }
 
+void calcNewXY(float theta, int moveX, int moveY, list<ezsift::MatchPair> match_list) {
+
+    list<ezsift::MatchPair>::iterator pair;
+
+    static int frameCounter = 0;
+
+    int oldX;
+    int oldY;
+
+    ofstream myfile;
+    myfile.open("oldXY_newXY.txt", std::ios::app);
+    myfile << "frame no.: " << frameCounter << "\n";
+
+    // loop through every matched pair
+    for (pair = match_list.begin(); pair != match_list.end(); pair++) {
+
+        oldX = pair->c1;
+        oldY = pair->r1;
+
+        if ((pair->c1 == pair->c2) && (pair->r1 == pair->r2))
+            continue;
+
+        int iNewX = round(cos(theta) * (oldX - 1920 / 2) - sin(theta) * (oldY - 1080 / 2) + 1920 / 2);
+        int iNewY = round(sin(theta) * (oldX - 1920 / 2) + cos(theta) * (oldY - 1080 / 2) + 1080 / 2);
+
+        iNewX += moveX;
+        iNewY += moveY;
+
+        //=============================================
+        
+        myfile << "OldX: \t" << oldX << "\tOldY: \t" << oldY << "\tnewX: \t" << iNewX << "\tnewY: \t" << iNewY << "\n";
+
+        //=============================================
+
+        
+    }
+    frameCounter++;
+    myfile.close();
+}
+
 int main() {
 
     FILE* f_in;
     FILE* f_out;
     
+    //================================================================
+    
+    vector <array<float, 3>> vRTdata;
 
-    bool bRotation = false;
-    bool bTranslation = false;
-    bool bDrawCharacteristicPoints = true;
-    bool bOnlyCharacteristicPoints = true;
+    array<float, 3> frameRT;
 
-    fopen_s(&f_in, "out_ROTACJA_TRANSLACJA_00.yuv", "rb");
+    // init for first frame
+    frameRT[0] = 0.0;
+    frameRT[1] = 0.0;
+    frameRT[2] = 0.0;
+
+    vRTdata.push_back(frameRT);
+
+    //================================================================
+
+    bool bRotation = true;
+    bool bMakeRotation = true;
+    bool bTranslation = true;
+    bool bMakeTranslation = true;
+    bool bDrawCharacteristicPoints = false;
+    bool bOnlyCharacteristicPoints = false;
+
+    fopen_s(&f_in, "in_srednie.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
@@ -153,8 +211,12 @@ int main() {
         pframeCopy->FrameCopy(*pframe);
     }
     
+    float fRotationAngle;
+    int* moveXY = nullptr;
+
         while (!feof(f_in)) {
             
+
             pframeNext = new Frame(1920, 1080, 1.0, 1.0);
             pframeNextCopy = new Frame();
 
@@ -185,6 +247,7 @@ int main() {
             list<ezsift::SiftKeypoint> kpt_list_first;
             list<ezsift::SiftKeypoint> kpt_list_second;
             list<ezsift::MatchPair> match_list;
+            
             bool bExtractDescriptor = true;
 
             imageFirst.read_pgm_direct(pframeBufY, iframeWidth, iframeHeight, iframeStrideWidthY);
@@ -215,33 +278,42 @@ int main() {
                 }
             }
             
+
+
             if (bRotation) {
                 // rotation compensation
-                float fRotationAngle = calculateRotationAngle(match_list);
-                //float fRotationAngle = calculateCenterRotationAngle(match_list, iframeNextWidth, iframeNextHeight);
-                if (fRotationAngle != 0) {
-                    pframeNext->correctFrameRotation(fRotationAngle);
-                    
-                    if(bDrawCharacteristicPoints)
-                        pframeNextCopy->correctFrameRotation(fRotationAngle);
-                }
-                    
-            }
+                fRotationAngle = calculateRotationAngle(match_list);
 
+                if (abs(fRotationAngle) < 0.045) {
+                    if (fRotationAngle != 0 && bMakeRotation) {
+                        pframeNext->correctFrameRotation(fRotationAngle);
+
+                        if (bDrawCharacteristicPoints)
+                            pframeNextCopy->correctFrameRotation(fRotationAngle);
+                    }
+                }
+
+                frameRT[0] = fRotationAngle;
+            }
 
             if (bTranslation) {
                 // translation compensation 
-                int* moveXY = moveCompensation(match_list);
-                pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
-                //pframeNext->filtration();
+                moveXY = moveCompensation(match_list);
+                if (moveXY != nullptr) {
+                    frameRT[1] = moveXY[0];
+                    frameRT[2] = moveXY[1];
+                }
+                if (bMakeTranslation) {
+                    pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
 
-                if (bDrawCharacteristicPoints)
-                    //pframeNextCopy->filtration();
-                    pframeNextCopy->correctFramePosition(moveXY[0], moveXY[1]);
+                    if (bDrawCharacteristicPoints)
+                        pframeNextCopy->correctFramePosition(moveXY[0], moveXY[1]);
+                }
             }
 
-            
 
+            calcNewXY(fRotationAngle, frameRT[1], frameRT[2], match_list);
+            
             // save frame to output file
             if (bfirstFrame) {
 
@@ -261,6 +333,9 @@ int main() {
                 delete pframeNextCopy;
             }
             else {
+                //save R and T data per frame
+                vRTdata.push_back(frameRT);
+
                 pframeNext->saveFrame(f_out);
             }
             
@@ -269,12 +344,31 @@ int main() {
             delete pframe;
             pframe = pframeNext;
             
+            
         }
     
     fclose(f_in);
     fclose(f_out);
     
     delete pframe;
+
+
+
+
+
+
+    /*
+    //=============================================
+    ofstream myfile;
+    myfile.open("RTperFrame.txt", std::ios::app);
+
+    for (int i = 0; i < vRTdata.size(); i++) {
+        myfile << "frame no.: " << i << "\ttheta: " << vRTdata[i][0] << "\t\tX: " << vRTdata[i][1] << "\t\tY: " << vRTdata[i][2] << "\n";
+    }
+
+    myfile.close();
+    //=============================================
+    */
 
     return 0;
 }

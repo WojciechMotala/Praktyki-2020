@@ -453,8 +453,8 @@ namespace ezsift {
         myfile.open("match_x_y.txt", std::ios::app);
 
         for (p = match_list.begin(); p != match_list.end(); p++) {
-            printf("\tMatch %3d: (%4d, %4d) -> (%4d, %4d)\n", match_idx, p->r1,
-                p->c1, p->r2, p->c2);
+            //printf("\tMatch %3d: (%4d, %4d) -> (%4d, %4d)\n", match_idx, p->r1,
+                //p->c1, p->r2, p->c2);
 
 
             myfile << p->r1 << "\t" << p->c1 << "\t" << p->r2 << "\t" << p->c2 << "\n";
