@@ -764,13 +764,13 @@ void Frame::correctFrameByH(Eigen::Matrix3f H) {
 
 			Eigen::MatrixXf newXY(3, 1);
 			Eigen::MatrixXf oldXY(3, 1);
-			oldXY(0) = j;
-			oldXY(1) = i;
+			oldXY(0) = 2*j;
+			oldXY(1) = 2*i;
 			oldXY(2) = 1;
 
 			newXY = H * oldXY;
-			int iNewX = int(newXY(0));
-			int iNewY = int(newXY(1));
+			int iNewX = int(newXY(0))/2;
+			int iNewY = int(newXY(1))/2;
 
 			oldBufU[iNewX + (iNewY - i) * iStrideWidthU] = ptempBufU[j];
 
@@ -785,13 +785,13 @@ void Frame::correctFrameByH(Eigen::Matrix3f H) {
 
 			Eigen::MatrixXf newXY(3, 1);
 			Eigen::MatrixXf oldXY(3, 1);
-			oldXY(0) = j;
-			oldXY(1) = i;
+			oldXY(0) = 2*j;
+			oldXY(1) = 2*i;
 			oldXY(2) = 1;
 
 			newXY = H * oldXY;
-			int iNewX = int(newXY(0));
-			int iNewY = int(newXY(1));
+			int iNewX = int(newXY(0))/2;
+			int iNewY = int(newXY(1))/2;
 
 			oldBufV[iNewX + (iNewY - i) * iStrideWidthV] = ptempBufV[j];
 
