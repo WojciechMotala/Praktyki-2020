@@ -67,7 +67,7 @@ public:
 	int getHeightY();
 
 	void correctFramePosition(int moveX, int moveY);
-	void correctFrameRotation(float theta);
+	void correctFrameRotation(float rotMat[]);
 
 	uint8_t* getBufY () const;
 

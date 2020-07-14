@@ -125,44 +125,19 @@ float calculateCenterRotationAngle(list<ezsift::MatchPair> match_list, int width
     return fAngle;
 }
 
-void calcNewXY(float theta, int moveX, int moveY, list<ezsift::MatchPair> match_list) {
+void mulMat(float rotMat[], float theta) {
+    float mat[4] = { cos(theta), -sin(theta),
+                     sin(theta),  cos(theta) };
 
-    list<ezsift::MatchPair>::iterator pair;
+    float tempMat[4] = { rotMat[0], rotMat[1],
+                         rotMat[2], rotMat[3] };
 
-    static int frameCounter = 0;
 
-    int oldX;
-    int oldY;
+    rotMat[0] = tempMat[0] * mat[0] + tempMat[1] * mat[2];
+    rotMat[1] = tempMat[0] * mat[1] + tempMat[1] * mat[3];
+    rotMat[2] = tempMat[2] * mat[0] + tempMat[3] * mat[2];
+    rotMat[3] = tempMat[2] * mat[1] + tempMat[3] * mat[3];
 
-    ofstream myfile;
-    myfile.open("oldXY_newXY.txt", std::ios::app);
-    myfile << "frame no.: " << frameCounter << "\n";
-
-    // loop through every matched pair
-    for (pair = match_list.begin(); pair != match_list.end(); pair++) {
-
-        oldX = pair->c1;
-        oldY = pair->r1;
-
-        if ((pair->c1 == pair->c2) && (pair->r1 == pair->r2))
-            continue;
-
-        int iNewX = round(cos(theta) * (oldX - 1920 / 2) - sin(theta) * (oldY - 1080 / 2) + 1920 / 2);
-        int iNewY = round(sin(theta) * (oldX - 1920 / 2) + cos(theta) * (oldY - 1080 / 2) + 1080 / 2);
-
-        iNewX += moveX;
-        iNewY += moveY;
-
-        //=============================================
-        
-        myfile << "OldX: \t" << oldX << "\tOldY: \t" << oldY << "\tnewX: \t" << iNewX << "\tnewY: \t" << iNewY << "\n";
-
-        //=============================================
-
-        
-    }
-    frameCounter++;
-    myfile.close();
 }
 
 int main() {
@@ -193,7 +168,6 @@ int main() {
     bool bOnlyCharacteristicPoints = false;
 
     fopen_s(&f_in, "in_srednie.yuv", "rb");
-    fopen_s(&f_out, "out.yuv", "wb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
     Frame* pframe = new Frame(1920, 1080, 1.0, 1.0);
@@ -202,30 +176,20 @@ int main() {
     Frame* pframeCopy = new Frame();
     Frame* pframeNextCopy;
     
+    
+
     bool bfirstFrame = true;
 
-    pframe->getFrame(f_in);
-
-    if (bDrawCharacteristicPoints) {
-        // copy of frame to mark characteristic points
-        pframeCopy->FrameCopy(*pframe);
-    }
-    
     float fRotationAngle;
     int* moveXY = nullptr;
 
+    pframe->getFrame(f_in);
+    
         while (!feof(f_in)) {
             
 
             pframeNext = new Frame(1920, 1080, 1.0, 1.0);
-            pframeNextCopy = new Frame();
-
             pframeNext->getFrame(f_in);
-
-            if (bDrawCharacteristicPoints) {
-                // copy of frame to mark characteristic points
-                pframeNextCopy->FrameCopy(*pframeNext);
-            }
 
             if (feof(f_in))
                 break;
@@ -259,86 +223,22 @@ int main() {
             // Match keypoints.
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
-            if (bDrawCharacteristicPoints) {
-
-                if (bfirstFrame && pframeCopy != nullptr) {
-                    //pframeCopy->drawSquare(kpt_list_first);
-                    if (bOnlyCharacteristicPoints)
-                        pframeCopy->clearImage();
-
-                    pframeCopy->drawSquare(match_list, true);
-                }
-                
-                if (pframeNextCopy != nullptr) {
-                    //pframeNextCopy->drawSquare(kpt_list_second);
-                    if(bOnlyCharacteristicPoints)
-                        pframeNextCopy->clearImage();
-                    
-                    pframeNextCopy->drawSquare(match_list, false);
-                }
-            }
-            
-
-
             if (bRotation) {
-                // rotation compensation
                 fRotationAngle = calculateRotationAngle(match_list);
-
-                if (abs(fRotationAngle) < 0.045) {
-                    if (fRotationAngle != 0 && bMakeRotation) {
-                        pframeNext->correctFrameRotation(fRotationAngle);
-
-                        if (bDrawCharacteristicPoints)
-                            pframeNextCopy->correctFrameRotation(fRotationAngle);
-                    }
-                }
-
                 frameRT[0] = fRotationAngle;
             }
 
             if (bTranslation) {
-                // translation compensation 
                 moveXY = moveCompensation(match_list);
                 if (moveXY != nullptr) {
                     frameRT[1] = moveXY[0];
                     frameRT[2] = moveXY[1];
                 }
-                if (bMakeTranslation) {
-                    pframeNext->correctFramePosition(moveXY[0], moveXY[1]);
-
-                    if (bDrawCharacteristicPoints)
-                        pframeNextCopy->correctFramePosition(moveXY[0], moveXY[1]);
-                }
             }
 
-
-            calcNewXY(fRotationAngle, frameRT[1], frameRT[2], match_list);
             
-            // save frame to output file
-            if (bfirstFrame) {
-
-                if (bDrawCharacteristicPoints) {
-                    pframeCopy->saveFrame(f_out);
-                    delete pframeCopy;
-                }
-                else {
-                    pframe->saveFrame(f_out);
-                }
-
-                bfirstFrame = false;
-            }
-
-            if (bDrawCharacteristicPoints) {
-                pframeNextCopy->saveFrame(f_out);
-                delete pframeNextCopy;
-            }
-            else {
-                //save R and T data per frame
-                vRTdata.push_back(frameRT);
-
-                pframeNext->saveFrame(f_out);
-            }
-            
+            //save R and T data per frame
+            vRTdata.push_back(frameRT);
 
             // memory manage
             delete pframe;
@@ -348,16 +248,10 @@ int main() {
         }
     
     fclose(f_in);
-    fclose(f_out);
-    
+
     delete pframe;
 
 
-
-
-
-
-    /*
     //=============================================
     ofstream myfile;
     myfile.open("RTperFrame.txt", std::ios::app);
@@ -368,7 +262,136 @@ int main() {
 
     myfile.close();
     //=============================================
-    */
+    
+    float rotationMatrix[4] = {cos(vRTdata[1][0]), -sin(vRTdata[1][0]),
+                               sin(vRTdata[1][0]),  cos(vRTdata[1][0]) };
+
+    // R and T compensation loop
+
+    fopen_s(&f_in, "in_srednie.yuv", "rb");
+    fopen_s(&f_out, "out.yuv", "wb");
+
+
+    pframe = new Frame(1920, 1080, 1.0, 1.0);
+    pframe->getFrame(f_in);
+
+    if (bDrawCharacteristicPoints) {
+        // copy of frame to mark characteristic points
+        pframeCopy->FrameCopy(*pframe);
+    }
+
+    int iFrameCounter = 0;
+
+    while (!feof(f_in)) {
+
+        iFrameCounter++;
+
+        pframeNext = new Frame(1920, 1080, 1.0, 1.0);
+        pframeNextCopy = new Frame();
+
+        pframeNext->getFrame(f_in);
+
+        if (bDrawCharacteristicPoints) {
+            // copy of frame to mark characteristic points
+            pframeNextCopy->FrameCopy(*pframeNext);
+        }
+
+        if (feof(f_in))
+            break;
+
+        if (bDrawCharacteristicPoints) {
+
+            if (bfirstFrame && pframeCopy != nullptr) {
+                if (bOnlyCharacteristicPoints)
+                    pframeCopy->clearImage();
+
+                //pframeCopy->drawSquare(match_list, true);
+            }
+
+            if (pframeNextCopy != nullptr) {
+                if (bOnlyCharacteristicPoints)
+                    pframeNextCopy->clearImage();
+
+                //pframeNextCopy->drawSquare(match_list, false);
+            }
+        }
+
+
+
+        if (bRotation) {
+
+            //set rot angle
+            //fRotationAngle = vRTdata[iFrameCounter][0];
+
+                if (fRotationAngle != 0 && bMakeRotation) {
+                    pframeNext->correctFrameRotation(rotationMatrix);
+
+                    if (bDrawCharacteristicPoints)
+                        pframeNextCopy->correctFrameRotation(rotationMatrix);
+                }
+
+            frameRT[0] = fRotationAngle;
+        }
+
+        if (bTranslation) {
+            // translation compensation 
+            
+            //set translation
+
+            int moveX = vRTdata[iFrameCounter][1];
+            int moveY = vRTdata[iFrameCounter][2];
+
+            if (bMakeTranslation) {
+                pframeNext->correctFramePosition(moveX, moveY);
+
+                if (bDrawCharacteristicPoints)
+                    pframeNextCopy->correctFramePosition(moveX, moveY);
+            }
+        }
+
+        // save frame to output file
+        if (bfirstFrame) {
+
+            if (bDrawCharacteristicPoints) {
+                pframeCopy->saveFrame(f_out);
+                delete pframeCopy;
+            }
+            else {
+                pframe->saveFrame(f_out);
+            }
+
+            bfirstFrame = false;
+        }
+
+        if (bDrawCharacteristicPoints) {
+            pframeNextCopy->saveFrame(f_out);
+            delete pframeNextCopy;
+        }
+        else {
+            pframeNext->saveFrame(f_out);
+        }
+
+        // memory manage
+        delete pframe;
+        pframe = pframeNext;
+
+        // matrix mul
+        mulMat(rotationMatrix, vRTdata[iFrameCounter+1][0]);
+        
+
+        vRTdata[iFrameCounter + 1][1] += vRTdata[iFrameCounter][1];
+        vRTdata[iFrameCounter + 1][2] += vRTdata[iFrameCounter][2];
+
+    }
+
+    fclose(f_in);
+    fclose(f_out);
+
+    delete pframe;
+
+    
+
+    
 
     return 0;
 }

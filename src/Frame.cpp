@@ -580,7 +580,7 @@ void Frame::correctFramePosition(int moveX, int moveY) {
 
 }
 
-void Frame::correctFrameRotation(float theta) {
+void Frame::correctFrameRotation(float rotMat[]) {
 
 	uint8_t* oldBufY = bufY;
 	uint8_t* oldBufU = bufU;
@@ -637,9 +637,9 @@ void Frame::correctFrameRotation(float theta) {
 
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
-
-			int iNewX = round( cos(theta) * (j - iWidthY / 2) - sin(theta) * (i - iHeightY / 2) + iWidthY / 2);
-			int iNewY = round( sin(theta) * (j - iWidthY / 2) + cos(theta) * (i - iHeightY / 2) + iHeightY / 2);
+															//-
+			int iNewX = round( rotMat[0] * (j - iWidthY / 2) + rotMat[1] * (i - iHeightY / 2) + iWidthY / 2);
+			int iNewY = round( rotMat[2] * (j - iWidthY / 2) + rotMat[3] * (i - iHeightY / 2) + iHeightY / 2);
 			
 			oldBufY[iNewX + (iNewY-i) * iStrideWidthY] = ptempBufY[j];
 
@@ -653,8 +653,8 @@ void Frame::correctFrameRotation(float theta) {
 		for (int j = 0; j < iWidthU; j++) {
 
 
-			int iNewX = round(cos(theta) * (j - iWidthU / 2) - sin(theta) * (i - iHeightU / 2) + iWidthU / 2);
-			int iNewY = round(sin(theta) * (j - iWidthU / 2) + cos(theta) * (i - iHeightU / 2) + iHeightU / 2);
+			int iNewX = round(rotMat[0] * (j - iWidthU / 2) + rotMat[1] * (i - iHeightU / 2) + iWidthU / 2);
+			int iNewY = round(rotMat[2] * (j - iWidthU / 2) + rotMat[3] * (i - iHeightU / 2) + iHeightU / 2);
 
 			oldBufU[iNewX + (iNewY - i) * iStrideWidthU] = ptempBufU[j];
 		}
@@ -667,8 +667,8 @@ void Frame::correctFrameRotation(float theta) {
 		for (int j = 0; j < iWidthV; j++) {
 
 			
-			int iNewX = round(cos(theta) * (j - iWidthU / 2) - sin(theta) * (i - iHeightU / 2) + iWidthU / 2);
-			int iNewY = round(sin(theta) * (j - iWidthU / 2) + cos(theta) * (i - iHeightU / 2) + iHeightU / 2);
+			int iNewX = round(rotMat[0] * (j - iWidthV / 2) + rotMat[1] * (i - iHeightV / 2) + iWidthV / 2);
+			int iNewY = round(rotMat[2] * (j - iWidthV / 2) + rotMat[3] * (i - iHeightV / 2) + iHeightV / 2);
 
 			oldBufV[iNewX + (iNewY - i) * iStrideWidthV] = ptempBufV[j];
 		}
