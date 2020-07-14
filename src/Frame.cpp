@@ -1,5 +1,6 @@
 #include "Frame.h"
 
+
 Frame::Frame(int imageWidth, int imageHeight, float strideWidth, float strideHeight) {
 	
 	this->iWidthY = imageWidth;
@@ -682,6 +683,129 @@ void Frame::correctFrameRotation(float rotMat[]) {
 	delete[] tempBufU;
 	delete[] tempBufV;
 
+}
+
+void Frame::correctFrameByH(Eigen::Matrix3f H) {
+	
+	uint8_t* oldBufY = bufY;
+	uint8_t* oldBufU = bufU;
+	uint8_t* oldBufV = bufV;
+
+	// temp buffors to copy data
+	uint8_t* const tempBufY = new uint8_t[iWidthY * iHeightY];
+	uint8_t* const tempBufU = new uint8_t[iWidthU * iHeightU];
+	uint8_t* const tempBufV = new uint8_t[iWidthV * iHeightV];
+
+	// pointers to temp buffors
+	uint8_t* ptempBufY = tempBufY;
+	uint8_t* ptempBufU = tempBufU;
+	uint8_t* ptempBufV = tempBufV;
+
+	// copy data Y U V to temp buffors
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+			ptempBufY[j] = oldBufY[j];
+			oldBufY[j] = 0;
+		}
+		ptempBufY += iWidthY;
+		oldBufY += iStrideWidthY;
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+			ptempBufU[j] = oldBufU[j];
+			//oldBufU[j] = 0;
+		}
+		ptempBufU += iWidthU;
+		oldBufU += iStrideWidthU;
+	}
+
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+			ptempBufV[j] = oldBufV[j];
+			//oldBufV[j] = 0;
+		}
+		ptempBufV += iWidthV;
+		oldBufV += iStrideWidthV;
+	}
+
+	// set pointers on start positions
+	oldBufY = bufY;
+	oldBufU = bufU;
+	oldBufV = bufV;
+
+	ptempBufY = tempBufY;
+	ptempBufU = tempBufU;
+	ptempBufV = tempBufV;
+
+	for (int i = 0; i < iHeightY; i++) {
+		for (int j = 0; j < iWidthY; j++) {
+
+			Eigen::MatrixXf newXY(3, 1);
+			Eigen::MatrixXf oldXY(3, 1);
+			oldXY(0) = j;
+			oldXY(1) = i;
+			oldXY(2) = 1;
+
+			newXY = H * oldXY;
+			int iNewX = int(newXY(0));
+			int iNewY = int(newXY(1));
+
+			oldBufY[iNewX + (iNewY-i) * iStrideWidthY] = ptempBufY[j];
+
+		}
+		ptempBufY += iWidthY;
+		oldBufY += iStrideWidthY;
+
+	}
+
+	for (int i = 0; i < iHeightU; i++) {
+		for (int j = 0; j < iWidthU; j++) {
+
+			Eigen::MatrixXf newXY(3, 1);
+			Eigen::MatrixXf oldXY(3, 1);
+			oldXY(0) = j;
+			oldXY(1) = i;
+			oldXY(2) = 1;
+
+			newXY = H * oldXY;
+			int iNewX = int(newXY(0));
+			int iNewY = int(newXY(1));
+
+			oldBufU[iNewX + (iNewY - i) * iStrideWidthU] = ptempBufU[j];
+
+		}
+		ptempBufU += iWidthU;
+		oldBufU += iStrideWidthU;
+
+	}
+
+	for (int i = 0; i < iHeightV; i++) {
+		for (int j = 0; j < iWidthV; j++) {
+
+			Eigen::MatrixXf newXY(3, 1);
+			Eigen::MatrixXf oldXY(3, 1);
+			oldXY(0) = j;
+			oldXY(1) = i;
+			oldXY(2) = 1;
+
+			newXY = H * oldXY;
+			int iNewX = int(newXY(0));
+			int iNewY = int(newXY(1));
+
+			oldBufV[iNewX + (iNewY - i) * iStrideWidthV] = ptempBufV[j];
+
+		}
+		ptempBufV += iWidthV;
+		oldBufV += iStrideWidthV;
+
+	}
+
+	// delete temp buffors
+	delete[] tempBufY;
+	delete[] tempBufU;
+	delete[] tempBufV;
+	
 }
 
 uint8_t* Frame::getBufY() const

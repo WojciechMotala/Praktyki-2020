@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <Eigen/Dense>
 #include <math.h>
 #include <vector>
 #include <array>
@@ -6,9 +7,11 @@
 #include "Frame.h"
 #include "ezsift.h"
 
+
 #define PI 3.14159265359
 
 using namespace std;
+using namespace Eigen;
 
 int* moveCompensation(list<ezsift::MatchPair> match_list) {
 
@@ -140,6 +143,36 @@ void mulMat(float rotMat[], float theta) {
 
 }
 
+Matrix3f calcHmat(list<ezsift::MatchPair> match_list) {
+    
+    list<ezsift::MatchPair>::iterator pair;
+
+    int iM = 3;
+    int iN = match_list.size();
+
+    MatrixXf M1(iM, iN);
+    MatrixXf M2(iM, iN);
+    
+    int iCol;
+
+    // populate matrixes
+    for (iCol = 0, pair = match_list.begin(); pair != match_list.end(); pair++, iCol++) {
+        
+        M1(0, iCol) = pair->c2;
+        M1(1, iCol) = pair->r2;
+        M1(2, iCol) = 1;
+
+        M2(0, iCol) = pair->c1;
+        M2(1, iCol) = pair->r1;
+        M2(2, iCol) = 1;
+    }
+
+    Matrix3f H = (M2 * M1.transpose()) * (M1 * M1.transpose()).inverse();
+
+    //cout << H;
+    return H;
+}
+
 int main() {
 
     FILE* f_in;
@@ -148,22 +181,30 @@ int main() {
     //================================================================
     
     vector <array<float, 3>> vRTdata;
+    vector <list<ezsift::MatchPair>> vMatchPairs;
+
+    vector<Matrix3f> vHmatrix;
 
     array<float, 3> frameRT;
 
     // init for first frame
+    Matrix3f firstFrameH;
+    firstFrameH << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+    vHmatrix.push_back(firstFrameH);
+    
+    /*
     frameRT[0] = 0.0;
     frameRT[1] = 0.0;
     frameRT[2] = 0.0;
 
     vRTdata.push_back(frameRT);
-
+    */
     //================================================================
 
-    bool bRotation = true;
-    bool bMakeRotation = true;
-    bool bTranslation = true;
-    bool bMakeTranslation = true;
+    bool bRotation = false;
+    bool bMakeRotation = false;
+    bool bTranslation = false;
+    bool bMakeTranslation = false;
     bool bDrawCharacteristicPoints = false;
     bool bOnlyCharacteristicPoints = false;
 
@@ -176,13 +217,15 @@ int main() {
     Frame* pframeCopy = new Frame();
     Frame* pframeNextCopy;
     
-    
+    ofstream myfile;
+
 
     bool bfirstFrame = true;
 
     float fRotationAngle;
     int* moveXY = nullptr;
-
+    //int test = 0;
+    
     pframe->getFrame(f_in);
     
         while (!feof(f_in)) {
@@ -223,27 +266,26 @@ int main() {
             // Match keypoints.
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
-            if (bRotation) {
-                fRotationAngle = calculateRotationAngle(match_list);
-                frameRT[0] = fRotationAngle;
-            }
-
-            if (bTranslation) {
-                moveXY = moveCompensation(match_list);
-                if (moveXY != nullptr) {
-                    frameRT[1] = moveXY[0];
-                    frameRT[2] = moveXY[1];
-                }
-            }
-
-            
-            //save R and T data per frame
-            vRTdata.push_back(frameRT);
-
+            vHmatrix.push_back( calcHmat(match_list) );
+            /*
+            myfile.open("H.txt", std::ios::app);
+            myfile << vHmatrix[test](0, 0) << "\n";
+            myfile << vHmatrix[test](0, 1) << "\n";
+            myfile << vHmatrix[test](0, 2) << "\n";
+            myfile << vHmatrix[test](1, 0) << "\n";
+            myfile << vHmatrix[test](1, 1) << "\n";
+            myfile << vHmatrix[test](1, 2) << "\n";
+            myfile << vHmatrix[test](2, 0) << "\n";
+            myfile << vHmatrix[test](2, 1) << "\n";
+            myfile << vHmatrix[test](2, 2) << "\n";
+            test++;
+            myfile.close();
+            */
             // memory manage
             delete pframe;
             pframe = pframeNext;
             
+
             
         }
     
@@ -252,26 +294,23 @@ int main() {
     delete pframe;
 
 
-    //=============================================
-    ofstream myfile;
-    myfile.open("RTperFrame.txt", std::ios::app);
-
-    for (int i = 0; i < vRTdata.size(); i++) {
-        myfile << "frame no.: " << i << "\ttheta: " << vRTdata[i][0] << "\t\tX: " << vRTdata[i][1] << "\t\tY: " << vRTdata[i][2] << "\n";
-    }
-
-    myfile.close();
-    //=============================================
-    
-    float rotationMatrix[4] = {cos(vRTdata[1][0]), -sin(vRTdata[1][0]),
-                               sin(vRTdata[1][0]),  cos(vRTdata[1][0]) };
-
     // R and T compensation loop
-
+    //vHmatrix.clear();
     fopen_s(&f_in, "in_srednie.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
+    /*
+    fstream myInfile;
+    myInfile.open("H.txt", ios_base::in);
 
-
+    float a, b, c, d, e, f, g, h, i;
+    while (myInfile >> a >> b >> c >> d >> e >> f >> g >> h >> i) {
+        Matrix3f tmp;
+        tmp << a, b, c, d, e, f, g, h, i;
+        //cout << tmp;
+        vHmatrix.push_back(tmp);
+    }
+    myInfile.close();
+    */
     pframe = new Frame(1920, 1080, 1.0, 1.0);
     pframe->getFrame(f_in);
 
@@ -299,55 +338,7 @@ int main() {
         if (feof(f_in))
             break;
 
-        if (bDrawCharacteristicPoints) {
-
-            if (bfirstFrame && pframeCopy != nullptr) {
-                if (bOnlyCharacteristicPoints)
-                    pframeCopy->clearImage();
-
-                //pframeCopy->drawSquare(match_list, true);
-            }
-
-            if (pframeNextCopy != nullptr) {
-                if (bOnlyCharacteristicPoints)
-                    pframeNextCopy->clearImage();
-
-                //pframeNextCopy->drawSquare(match_list, false);
-            }
-        }
-
-
-
-        if (bRotation) {
-
-            //set rot angle
-            //fRotationAngle = vRTdata[iFrameCounter][0];
-
-                if (fRotationAngle != 0 && bMakeRotation) {
-                    pframeNext->correctFrameRotation(rotationMatrix);
-
-                    if (bDrawCharacteristicPoints)
-                        pframeNextCopy->correctFrameRotation(rotationMatrix);
-                }
-
-            frameRT[0] = fRotationAngle;
-        }
-
-        if (bTranslation) {
-            // translation compensation 
-            
-            //set translation
-
-            int moveX = vRTdata[iFrameCounter][1];
-            int moveY = vRTdata[iFrameCounter][2];
-
-            if (bMakeTranslation) {
-                pframeNext->correctFramePosition(moveX, moveY);
-
-                if (bDrawCharacteristicPoints)
-                    pframeNextCopy->correctFramePosition(moveX, moveY);
-            }
-        }
+        pframeNext->correctFrameByH(vHmatrix[iFrameCounter]);
 
         // save frame to output file
         if (bfirstFrame) {
@@ -376,11 +367,8 @@ int main() {
         pframe = pframeNext;
 
         // matrix mul
-        mulMat(rotationMatrix, vRTdata[iFrameCounter+1][0]);
-        
-
-        vRTdata[iFrameCounter + 1][1] += vRTdata[iFrameCounter][1];
-        vRTdata[iFrameCounter + 1][2] += vRTdata[iFrameCounter][2];
+        Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
+        vHmatrix[iFrameCounter + 1] = tempH;
 
     }
 

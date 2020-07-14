@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <Eigen/Dense>
 #include "ezsift.h"
 
 class Frame {
@@ -68,6 +69,7 @@ public:
 
 	void correctFramePosition(int moveX, int moveY);
 	void correctFrameRotation(float rotMat[]);
+	void correctFrameByH(Eigen::Matrix3f H);
 
 	uint8_t* getBufY () const;
 
