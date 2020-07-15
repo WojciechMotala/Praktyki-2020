@@ -41,6 +41,7 @@ private:
 
 
 public:
+	Frame() {};
 	Frame(int imageWidth, int imageHeight, float strideWidth, float strideHeight);
 	void FrameCopy(const Frame& source);
 	~Frame();

@@ -17,10 +17,14 @@ int main() {
 
     FILE* f_in;
     FILE* f_out;
+    FILE* f_out2;
 
     const char* cInputFileName = "../in_srednie.yuv";
     const char* cOutputFileName = "../out.yuv";
     
+    bool bOnlyPoints = true;
+    const char* cOutputFileNameOnlyPoints = "../out_punkty.yuv";
+
     vector <array<float, 3>> vRTdata;
     vector <list<ezsift::MatchPair>> vMatchPairs;
 
@@ -38,6 +42,7 @@ int main() {
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
     Frame* pframe = new Frame(1920, 1080, 1.0, 1.0);
     Frame* pframeNext;
+    
     
     ofstream myfile;
 
@@ -83,6 +88,7 @@ int main() {
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
             vHmatrix.push_back( calcHmat(match_list) );
+            vMatchPairs.push_back(match_list);
 
             // memory manage
             delete pframe;
@@ -97,32 +103,62 @@ int main() {
     fopen_s(&f_in, cInputFileName, "rb");
     fopen_s(&f_out, cOutputFileName, "wb");
 
+    
+    fopen_s(&f_out2, cOutputFileNameOnlyPoints, "wb");
+
     pframe = new Frame(1920, 1080, 1.0, 1.0);
     pframe->getFrame(f_in);
 
     int iFrameCounter = 0;
+
+    //Matrix3f copyMatrix;
+    //int iMulH = 0;
 
     while (!feof(f_in)) {
 
         iFrameCounter++;
 
         pframeNext = new Frame(1920, 1080, 1.0, 1.0);
+        Frame* pframeNextCopy = new Frame();
 
         pframeNext->getFrame(f_in);
+        pframeNextCopy->FrameCopy(*pframeNext);
 
         if (feof(f_in))
             break;
+
+
+        if (bOnlyPoints) {
+            clearImage(pframeNextCopy);
+            drawSquare(pframeNextCopy, vMatchPairs[iFrameCounter - 1], false);
+            correctFrameByH(pframeNextCopy, vHmatrix[iFrameCounter]);
+        }
+
 
         correctFrameByH(pframeNext, vHmatrix[iFrameCounter]);
 
         // save frame to output file
         if (bfirstFrame) {
+
+            //iMulH = 1;
+
             pframe->saveFrame(f_out);
+
+            if (bOnlyPoints) {
+                clearImage(pframe);
+                drawSquare(pframe, vMatchPairs[iFrameCounter - 1], true);
+                pframe->saveFrame(f_out2);
+            }
+
             bfirstFrame = false;
         }
 
         pframeNext->saveFrame(f_out);
 
+        if (bOnlyPoints) {
+            pframeNextCopy->saveFrame(f_out2);
+            delete pframeNextCopy;
+        }
         // memory manage
         delete pframe;
         pframe = pframeNext;
@@ -131,10 +167,31 @@ int main() {
         Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
         vHmatrix[iFrameCounter + 1] = tempH;
 
+        /*
+        if (iMulH < 3) {
+            Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
+            vHmatrix[iFrameCounter + 1] = tempH;
+            iMulH++;
+        } else if(iMulH == 3) { 
+            copyMatrix = vHmatrix[iFrameCounter + 1]; //kopia macierzy
+            Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
+            vHmatrix[iFrameCounter + 1] = tempH;
+            iMulH++;
+        } else if (iMulH == 4) {
+            Matrix3f tempH = copyMatrix * vHmatrix[iFrameCounter + 1];
+            vHmatrix[iFrameCounter + 1] = tempH;
+            iMulH = 0;
+        }
+        */
+
     }
 
     fclose(f_in);
     fclose(f_out);
+
+
+    fclose(f_out2);
+
 
     delete pframe;
 

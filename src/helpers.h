@@ -148,4 +148,3 @@ Matrix3f calcHmat(list<ezsift::MatchPair> match_list) {
     //cout << H;
     return H;
 }
-
