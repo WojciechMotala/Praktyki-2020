@@ -13,45 +13,42 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Pliki źródłowe\ezSIFT">
-      <UniqueIdentifier>{a0e82918-91c3-43a0-9c4c-bf92219888b3}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="videoFFMPEG.cpp">
+    <ClInclude Include="..\src\common.h">
       <Filter>Pliki źródłowe</Filter>
-    </ClCompile>
-    <ClCompile Include="Frame.cpp">
+    </ClInclude>
+    <ClInclude Include="..\src\ezsift.h">
       <Filter>Pliki źródłowe</Filter>
-    </ClCompile>
-    <ClCompile Include="ezsift.cpp">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClCompile>
-    <ClCompile Include="image_utility.cpp">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClCompile>
+    </ClInclude>
+    <ClInclude Include="..\src\Frame.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\image.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\image_utility.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\timer.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vvector.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Frame.h">
+    <ClCompile Include="..\src\ezsift.cpp">
       <Filter>Pliki źródłowe</Filter>
-    </ClInclude>
-    <ClInclude Include="common.h">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClInclude>
-    <ClInclude Include="ezsift.h">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClInclude>
-    <ClInclude Include="image.h">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClInclude>
-    <ClInclude Include="image_utility.h">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClInclude>
-    <ClInclude Include="timer.h">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClInclude>
-    <ClInclude Include="vvector.h">
-      <Filter>Pliki źródłowe\ezSIFT</Filter>
-    </ClInclude>
+    </ClCompile>
+    <ClCompile Include="..\src\Frame.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image_utility.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\videoFFMPEG.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

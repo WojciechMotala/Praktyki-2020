@@ -208,7 +208,7 @@ int main() {
     bool bDrawCharacteristicPoints = false;
     bool bOnlyCharacteristicPoints = false;
 
-    fopen_s(&f_in, "in_srednie.yuv", "rb");
+    fopen_s(&f_in, "../in_srednie.yuv", "rb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
     Frame* pframe = new Frame(1920, 1080, 1.0, 1.0);
@@ -296,7 +296,7 @@ int main() {
 
     // R and T compensation loop
     //vHmatrix.clear();
-    fopen_s(&f_in, "in_srednie.yuv", "rb");
+    fopen_s(&f_in, "../in_srednie.yuv", "rb");
     fopen_s(&f_out, "out.yuv", "wb");
     /*
     fstream myInfile;
