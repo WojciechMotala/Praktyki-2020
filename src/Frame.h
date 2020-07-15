@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include "ezsift.h"
 
+
 class Frame {
 private:
 
@@ -40,41 +41,32 @@ private:
 
 
 public:
-	Frame() {};
 	Frame(int imageWidth, int imageHeight, float strideWidth, float strideHeight);
 	void FrameCopy(const Frame& source);
 	~Frame();
 
 	void getFrame(FILE* inputFile);
 	void saveFrame(FILE* outputFile);
-	void harrisCornerDetector();
-
-	uint8_t* getIx();
-	uint8_t* getIy();
-
-	void squareI(uint8_t* I);
-	uint8_t* multiplyIxIy(uint8_t* Ix, uint8_t* Iy);
-	uint8_t* gauss(uint8_t* I);
-	uint8_t* harris(uint8_t* gIx, uint8_t* gIy, uint8_t* gIxIy);
-
-	void checkCorners(uint8_t* harris);
-	void drawSquare(int height, int width);
-	void drawSquare(std::list<ezsift::SiftKeypoint> kpt_list);
-	void drawSquare(std::list<ezsift::MatchPair> match_list, bool firstFrame);
-	void saveTopgm();
 
 	int getStrideWidthY();
+	int getStrideHeightY();
 	int getWidthY();
 	int getHeightY();
 
-	void correctFramePosition(int moveX, int moveY);
-	void correctFrameRotation(float rotMat[]);
-	void correctFrameByH(Eigen::Matrix3f H);
+	int getStrideWidthU();
+	int getStrideHeightU();
+	int getWidthU();
+	int getHeightU();
+
+	int getStrideWidthV();
+	int getStrideHeightV();
+	int getWidthV();
+	int getHeightV();
+
+	int getShiftY();
 
 	uint8_t* getBufY () const;
-
-	void filtration();
-
-	void clearImage();
+	uint8_t* getBufU() const;
+	uint8_t* getBufV() const;
 
 };
