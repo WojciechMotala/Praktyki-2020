@@ -21,10 +21,13 @@ int main() {
 
     const char* cInputFileName = "../in_srednie.yuv";
     const char* cOutputFileName = "../out.yuv";
-    
-    bool bOnlyPoints = true;
-    const char* cOutputFileNameOnlyPoints = "../out_punkty.yuv";
 
+    // stride margin in %
+    float fStrideMargin = 4.0;
+    
+    bool bOnlyPoints = false;
+    const char* cOutputFileNameOnlyPoints = "../out_punkty.yuv";
+    
     vector <array<float, 3>> vRTdata;
     vector <list<ezsift::MatchPair>> vMatchPairs;
 
@@ -40,11 +43,11 @@ int main() {
     fopen_s(&f_in, cInputFileName, "rb");
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
-    Frame* pframe = new Frame(1920, 1080, 1.0, 1.0);
+    Frame* pframe = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
     Frame* pframeNext;
     
     
-    ofstream myfile;
+    int iFrameCounter = 0;
 
     bool bfirstFrame = true;
     
@@ -52,11 +55,13 @@ int main() {
    
         while (!feof(f_in)) {
             
-            pframeNext = new Frame(1920, 1080, 1.0, 1.0);
+            pframeNext = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
             pframeNext->getFrame(f_in);
 
             if (feof(f_in))
                 break;
+            
+            ///*
 
             ezsift::Image<uint8_t> imageFirst;
             ezsift::Image<uint8_t> imageSecond;
@@ -89,6 +94,13 @@ int main() {
 
             vHmatrix.push_back( calcHmat(match_list) );
             vMatchPairs.push_back(match_list);
+            
+            //**********************************************************
+            //saveMatrixHtoFile(vHmatrix[iFrameCounter]);
+            //iFrameCounter++;
+            //**********************************************************
+            
+            //*/
 
             // memory manage
             delete pframe;
@@ -100,25 +112,37 @@ int main() {
 
     delete pframe;
 
+    
+    //**********************************************************
+    //vHmatrix.clear();
+    //vHmatrix = readHmatrixHfromFile();
+    //**********************************************************
+
+    // vectors of matrixes for single frame
+    vector<Matrix3f> vHmean;
+    iFrameCounter = 0;
+
+    for (int i = 0; i < vHmatrix.size(); i++) {
+        vHmean.push_back(calcMeanH(vHmatrix, iFrameCounter, 60));
+        iFrameCounter++;
+    }
+
+
     fopen_s(&f_in, cInputFileName, "rb");
     fopen_s(&f_out, cOutputFileName, "wb");
-
     
     fopen_s(&f_out2, cOutputFileNameOnlyPoints, "wb");
 
-    pframe = new Frame(1920, 1080, 1.0, 1.0);
+    pframe = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
     pframe->getFrame(f_in);
 
-    int iFrameCounter = 0;
-
-    //Matrix3f copyMatrix;
-    //int iMulH = 0;
+    iFrameCounter = 0;
 
     while (!feof(f_in)) {
 
         iFrameCounter++;
 
-        pframeNext = new Frame(1920, 1080, 1.0, 1.0);
+        pframeNext = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
         Frame* pframeNextCopy = new Frame();
 
         pframeNext->getFrame(f_in);
@@ -131,16 +155,16 @@ int main() {
         if (bOnlyPoints) {
             clearImage(pframeNextCopy);
             drawSquare(pframeNextCopy, vMatchPairs[iFrameCounter - 1], false);
-            correctFrameByH(pframeNextCopy, vHmatrix[iFrameCounter]);
+            //correctFrameByH(pframeNextCopy, vHmatrix[iFrameCounter]);
+            correctFrameByH(pframeNext, vHmean[iFrameCounter]);
         }
 
 
-        correctFrameByH(pframeNext, vHmatrix[iFrameCounter]);
+        //correctFrameByH(pframeNext, vHmatrix[iFrameCounter]);
+        correctFrameByH(pframeNext, vHmean[iFrameCounter]);
 
         // save frame to output file
         if (bfirstFrame) {
-
-            //iMulH = 1;
 
             pframe->saveFrame(f_out);
 
@@ -157,47 +181,25 @@ int main() {
 
         if (bOnlyPoints) {
             pframeNextCopy->saveFrame(f_out2);
-            delete pframeNextCopy;
         }
         // memory manage
         delete pframe;
+        delete pframeNextCopy;
         pframe = pframeNext;
 
+        /*
         // matrix mul
         Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
         vHmatrix[iFrameCounter + 1] = tempH;
-
-        /*
-        if (iMulH < 3) {
-            Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
-            vHmatrix[iFrameCounter + 1] = tempH;
-            iMulH++;
-        } else if(iMulH == 3) { 
-            copyMatrix = vHmatrix[iFrameCounter + 1]; //kopia macierzy
-            Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
-            vHmatrix[iFrameCounter + 1] = tempH;
-            iMulH++;
-        } else if (iMulH == 4) {
-            Matrix3f tempH = copyMatrix * vHmatrix[iFrameCounter + 1];
-            vHmatrix[iFrameCounter + 1] = tempH;
-            iMulH = 0;
-        }
         */
 
     }
 
     fclose(f_in);
     fclose(f_out);
-
-
     fclose(f_out2);
 
-
     delete pframe;
-
-    
-
-    
 
     return 0;
 }

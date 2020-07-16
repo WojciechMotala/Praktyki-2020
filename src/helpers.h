@@ -148,3 +148,80 @@ Matrix3f calcHmat(list<ezsift::MatchPair> match_list) {
     //cout << H;
     return H;
 }
+
+
+Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
+
+    vector<Matrix3f> vTempH;
+    int iHCounter = 0;
+
+    if (iFrameNo == 0) {
+        return vH[0];
+    }
+
+    if (iFrameNo == 1) {
+        return vH[1];
+    }
+
+    vTempH.push_back(vH[iFrameNo]);
+    iHCounter++;
+
+    for (int i = iFrameNo, j=0 ; i > 1; i--, j++) {
+        
+        if (iHCounter == iFilterWindow)
+            break;
+
+        Matrix3f tmp = vH[i - 1] * vTempH[j];
+
+        vTempH.push_back(tmp);
+        iHCounter++;
+        
+    }
+
+    Matrix3f result;
+    result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+
+    // calculate mean of matrixes in vector vTempH
+ 
+    for (int i = 0; i < vTempH.size(); i++) {
+        result += vTempH[i];
+    }
+
+    result /= iHCounter;
+
+    return result;
+}
+
+void saveMatrixHtoFile(Matrix3f &vHmatrix) {
+
+    ofstream myfile;
+    myfile.open("../H.txt", std::ios::app);
+    myfile << vHmatrix(0, 0) << "\n";
+    myfile << vHmatrix(0, 1) << "\n";
+    myfile << vHmatrix(0, 2) << "\n";
+    myfile << vHmatrix(1, 0) << "\n";
+    myfile << vHmatrix(1, 1) << "\n";
+    myfile << vHmatrix(1, 2) << "\n";
+    myfile << vHmatrix(2, 0) << "\n";
+    myfile << vHmatrix(2, 1) << "\n";
+    myfile << vHmatrix(2, 2) << "\n";
+    myfile.close();
+
+}
+
+vector<Matrix3f> readHmatrixHfromFile() {
+    vector<Matrix3f> vHmatrix;
+
+    fstream myInfile;
+    myInfile.open("../H.txt", ios_base::in);
+    float a, b, c, d, e, f, g, h, i;
+    while (myInfile >> a >> b >> c >> d >> e >> f >> g >> h >> i) {
+        Matrix3f tmp;
+        tmp << a, b, c, d, e, f, g, h, i;
+        //cout << tmp;
+        vHmatrix.push_back(tmp);
+    }
+    myInfile.close();
+    return vHmatrix;
+}
+
