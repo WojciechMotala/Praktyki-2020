@@ -149,6 +149,50 @@ Matrix3f calcHmat(list<ezsift::MatchPair> match_list) {
     return H;
 }
 
+Matrix3f matrixHfilter(Matrix3f H) {
+
+    Matrix2f A;
+    Matrix2f Q;
+    Matrix2f R;
+    Matrix2f QR;
+
+    //cout << H << endl << endl;
+
+    A << H(0, 0), H(0, 1), H(1, 0), H(1, 1);
+
+    cout << A << endl << endl;
+    
+    ColPivHouseholderQR<Matrix2f> qr(A);
+    qr.compute(A);
+
+    Q = qr.matrixQ();
+    R = qr.matrixR();
+
+    R(0, 0) = (R(0, 0) + R(1, 1)) / 2;
+    R(1, 1) = R(0, 0);
+    R(0, 1) = 0;
+    R(1, 0) = 0;
+
+    cout << R << endl << endl;
+
+    QR = Q * R;
+
+    Matrix3f result;
+
+    // sklejenie nowej macierzy H
+    result(0, 0) = QR(0, 0);
+    result(0, 1) = QR(0, 1);
+    result(1, 0) = QR(1, 0);
+    result(1, 1) = QR(1, 1);
+    
+    result(0, 2) = H(0, 2);
+    result(1, 2) = H(1, 2);
+    result(2, 0) = 0.0;
+    result(2, 1) = 0.0;
+    result(2, 2) = 1.0;
+    
+    return result;
+}
 
 Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
 
@@ -172,6 +216,8 @@ Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
             break;
 
         Matrix3f tmp = vH[i - 1] * vTempH[j];
+
+        tmp = matrixHfilter(tmp);
 
         vTempH.push_back(tmp);
         iHCounter++;
@@ -224,4 +270,8 @@ vector<Matrix3f> readHmatrixHfromFile() {
     myInfile.close();
     return vHmatrix;
 }
+
+
+
+
 
