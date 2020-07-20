@@ -155,28 +155,57 @@ Matrix3f matrixHfilter(Matrix3f H) {
     Matrix2f Q;
     Matrix2f R;
     Matrix2f QR;
+    float a, b, c, d, 
+          q1, q2, q3, q4, 
+          r1, r2, r3, r4;
+
+    /**
+    *
+    * A = | a, b |
+    *     | c, d |
+    *
+    * Q = | q1, q2 | 
+    *     | q3, q4 |
+    *
+    * R = | r1, r2 |
+    *     | r3, r4 |
+    *
+    **/
+
 
     //cout << H << endl << endl;
 
-    A << H(0, 0), H(0, 1), H(1, 0), H(1, 1);
+    //A << H(0, 0), H(0, 1), H(1, 0), H(1, 1);
+    a = H(0, 0);
+    b = H(0, 1);
+    c = H(1, 0);
+    d = H(1, 1);
+    /*
+    a = 3;
+    b = 3;
+    c = 4;
+    d = 5;
+    */
+    float tmpSqrt = sqrtf((b * c * b * c - a * d * b * c - b * c * a * d + a * d * a * d) / (a * a + c * c));
 
-    cout << A << endl << endl;
+    q1 = a / sqrtf((a * a) + (c * c));
+    q2 = c / sqrtf((a * a) + (c * c));
+    q3 = (c * b * c - c * a * d) / ((a * a + c * c) * tmpSqrt);
+    q4 = (a * a * d - a * b * c) / ((a * a + c * c) * tmpSqrt);
+
+    r1 = (sqrtf(a * a + c * c) + tmpSqrt) / 2;
+    //r2 = (b * a + d * c) / sqrtf(a * a + c * c);
+    r2 = 0.0;
+    r3 = 0.0;
+    r4 = r1;
     
-    ColPivHouseholderQR<Matrix2f> qr(A);
-    qr.compute(A);
-
-    Q = qr.matrixQ();
-    R = qr.matrixR();
-
-    R(0, 0) = (R(0, 0) + R(1, 1)) / 2;
-    R(1, 1) = R(0, 0);
-    R(0, 1) = 0;
-    R(1, 0) = 0;
-
-    cout << R << endl << endl;
+    Q << q1, q2, q3, q4;
+    R << r1, r2, r3, r4;
+    
+    //cout << Q << endl << endl << R << endl << endl;
 
     QR = Q * R;
-
+    //cout << QR << endl << endl;
     Matrix3f result;
 
     // sklejenie nowej macierzy H
@@ -187,11 +216,12 @@ Matrix3f matrixHfilter(Matrix3f H) {
     
     result(0, 2) = H(0, 2);
     result(1, 2) = H(1, 2);
-    result(2, 0) = 0.0;
-    result(2, 1) = 0.0;
-    result(2, 2) = 1.0;
-    
+    result(2, 0) = H(2, 0);//0.0;
+    result(2, 1) = H(2, 1);//0.0;
+    result(2, 2) = H(2, 2);//1.0;
+    //cout << result << endl << endl;
     return result;
+
 }
 
 Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
@@ -238,6 +268,102 @@ Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
     return result;
 }
 
+void calcMeanTQR(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &vR, vector<Matrix3f> &vMeanT, vector<Matrix3f> &vMeanQ, vector<Matrix3f> &vMeanR, int iFrameNo, int iFilterWindowT, int iFilterWindowQ, int iFilterWindowR) {
+
+    vector<Matrix3f> vTempT;
+    vector<Matrix3f> vTempQ;
+    vector<Matrix3f> vTempR;
+    int iTCounter = 0;
+    int iQCounter = 0;
+    int iRCounter = 0;
+
+    if (iFrameNo == 0) {
+        //return vH[0];
+        vMeanT.push_back(vT[0]);
+        vMeanQ.push_back(vQ[0]);
+        vMeanR.push_back(vR[0]);
+        return;
+    }
+
+    if (iFrameNo == 1) {
+        vMeanT.push_back(vT[1]);
+        vMeanQ.push_back(vQ[1]);
+        vMeanR.push_back(vR[1]);
+        return;
+    }
+
+    vTempT.push_back(vT[iFrameNo]);
+    vTempQ.push_back(vQ[iFrameNo]);
+    vTempR.push_back(vR[iFrameNo]);
+    
+    iTCounter++;
+    iQCounter++;
+    iRCounter++;
+
+    for (int i = iFrameNo, j = 0; i > 1; i--, j++) {
+
+        if (iTCounter == iFilterWindowT)
+            break;
+
+        Matrix3f tmp = vT[i - 1] * vTempT[j];
+
+        vTempT.push_back(tmp);
+        iTCounter++;
+
+    }
+
+    for (int i = iFrameNo, j = 0; i > 1; i--, j++) {
+
+        if (iQCounter == iFilterWindowQ)
+            break;
+
+        Matrix3f tmp = vQ[i - 1] * vTempQ[j];
+
+        vTempQ.push_back(tmp);
+        iQCounter++;
+
+    }
+
+    for (int i = iFrameNo, j = 0; i > 1; i--, j++) {
+
+        if (iRCounter == iFilterWindowR)
+            break;
+
+        Matrix3f tmp = vR[i - 1] * vTempR[j];
+
+        vTempR.push_back(tmp);
+        iRCounter++;
+
+    }
+
+    Matrix3f resultT;
+    Matrix3f resultQ;
+    Matrix3f resultR;
+    resultT << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    resultQ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    resultR << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    
+    // calculate mean of matrixes in vector vTempH
+
+    for (int i = 0; i < vTempT.size(); i++) {
+        resultT += vTempT[i];
+    }
+    for (int i = 0; i < vTempQ.size(); i++) {
+        resultQ += vTempQ[i];
+    }
+    for (int i = 0; i < vTempR.size(); i++) {
+        resultR += vTempR[i];
+    }
+
+    resultT /= iTCounter;
+    resultQ /= iQCounter;
+    resultR /= iRCounter;
+
+    vMeanT.push_back(resultT);
+    vMeanQ.push_back(resultQ);
+    vMeanR.push_back(resultR);
+}
+
 void saveMatrixHtoFile(Matrix3f &vHmatrix) {
 
     ofstream myfile;
@@ -255,7 +381,7 @@ void saveMatrixHtoFile(Matrix3f &vHmatrix) {
 
 }
 
-vector<Matrix3f> readHmatrixHfromFile() {
+vector<Matrix3f> readHmatrixfromFile() {
     vector<Matrix3f> vHmatrix;
 
     fstream myInfile;
@@ -264,14 +390,101 @@ vector<Matrix3f> readHmatrixHfromFile() {
     while (myInfile >> a >> b >> c >> d >> e >> f >> g >> h >> i) {
         Matrix3f tmp;
         tmp << a, b, c, d, e, f, g, h, i;
-        //cout << tmp;
         vHmatrix.push_back(tmp);
     }
     myInfile.close();
     return vHmatrix;
 }
 
+void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &vR, Matrix3f H) {
 
+    // Translation Matrix
+    Matrix3f T;
+    T(0, 0) = 1.0;
+    T(0, 1) = 0.0;
+    T(0, 2) = H(0, 2);
+    
+    T(1, 0) = 0.0;
+    T(1, 1) = 1.0;
+    T(1, 2) = H(1, 2);
+
+    T(2, 0) = 0.0;
+    T(2, 1) = 0.0;
+    T(2, 2) = 1.0;
+
+    // Rotation and Scale Matrix
+ 
+    Matrix3f Q;
+    Matrix3f R;
+    Matrix2f tmpQ;
+    Matrix2f tmpR;
+
+    float a, b, c, d,
+          q1, q2, q3, q4,
+          r1, r2, r3, r4;
+
+    /**
+    *
+    * A = | a, b |
+    *     | c, d |
+    *
+    * Q = | q1, q2 |
+    *     | q3, q4 |
+    *
+    * R = | r1, r2 |
+    *     | r3, r4 |
+    *
+    **/
+
+    a = H(0, 0);
+    b = H(0, 1);
+    c = H(1, 0);
+    d = H(1, 1);
+
+    float tmpSqrt = sqrtf((b * c * b * c - a * d * b * c - b * c * a * d + a * d * a * d) / (a * a + c * c));
+
+    q1 = a / sqrtf((a * a) + (c * c));
+    q2 = c / sqrtf((a * a) + (c * c));
+    q3 = (c * b * c - c * a * d) / ((a * a + c * c) * tmpSqrt);
+    q4 = (a * a * d - a * b * c) / ((a * a + c * c) * tmpSqrt);
+
+    r1 = (sqrtf(a * a + c * c) + tmpSqrt) / 2;
+    r2 = 0.0;
+    r3 = 0.0;
+    r4 = r1;
+
+    tmpQ << q1, q2, q3, q4;
+    tmpR << r1, r2, r3, r4;
+
+    Q(0, 0) = tmpQ(0, 0);
+    Q(0, 1) = tmpQ(0, 1);
+    Q(0, 2) = 0.0;
+
+    Q(1, 0) = tmpQ(1, 0);
+    Q(1, 1) = tmpQ(1, 1);
+    Q(1, 2) = 0.0;
+
+    Q(2, 0) = 0.0;
+    Q(2, 1) = 0.0;
+    Q(2, 2) = 1.0;
+
+    R(0, 0) = tmpR(0, 0);
+    R(0, 1) = 0.0;
+    R(0, 2) = 0.0;
+
+    R(1, 0) = 0.0;
+    R(1, 1) = tmpR(1, 1);
+    R(1, 2) = 0.0;
+
+    R(2, 0) = 0.0;
+    R(2, 1) = 0.0;
+    R(2, 2) = 1.0;
+
+    vT.push_back(T);
+    vQ.push_back(Q);
+    vR.push_back(R);
+
+}
 
 
 

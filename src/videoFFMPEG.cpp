@@ -23,7 +23,7 @@ int main() {
     const char* cOutputFileName = "../out.yuv";
 
     // stride margin in %
-    float fStrideMargin = 4.0;
+    float fStrideMargin = 5.0;
     
     bool bOnlyPoints = false;
     const char* cOutputFileNameOnlyPoints = "../out_punkty.yuv";
@@ -115,18 +115,37 @@ int main() {
     
     //**********************************************************
     vHmatrix.clear();
-    vHmatrix = readHmatrixHfromFile();
+    vHmatrix = readHmatrixfromFile();
     //**********************************************************
 
     // vectors of matrixes for single frame
     vector<Matrix3f> vHmean;
+
+    vector<Matrix3f> vT; // translation
+    vector<Matrix3f> vQ; // rotation
+    vector<Matrix3f> vR; // scale
+    vector<Matrix3f> vMeanT;
+    vector<Matrix3f> vMeanQ;
+    vector<Matrix3f> vMeanR;
+
     iFrameCounter = 0;
 
+    for (int i = 0; i < vHmatrix.size(); i++) {
+        matrixFactorisationH(vT, vQ, vR, vHmatrix[i]);
+    }
+
+    iFrameCounter = 0;
+
+    for (int i = 0; i < vHmatrix.size(); i++) {
+        calcMeanTQR(vT, vQ, vR, vMeanT, vMeanQ, vMeanR, i, 30, 30, 30);
+    }
+
+    /*
     for (int i = 0; i < vHmatrix.size(); i++) {
         vHmean.push_back(calcMeanH(vHmatrix, iFrameCounter, 60));
         iFrameCounter++;
     }
-
+    */
 
     fopen_s(&f_in, cInputFileName, "rb");
     fopen_s(&f_out, cOutputFileName, "wb");
@@ -161,7 +180,9 @@ int main() {
 
 
         //correctFrameByH(pframeNext, vHmatrix[iFrameCounter]);
-        correctFrameByH(pframeNext, vHmean[iFrameCounter]);
+        //correctFrameByH(pframeNext, vHmean[iFrameCounter]);
+        Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
+        correctFrameByH(pframeNext, H);
 
         // save frame to output file
         if (bfirstFrame) {
