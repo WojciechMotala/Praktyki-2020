@@ -26,6 +26,7 @@
     <ClInclude Include="..\src\helpers.h" />
     <ClInclude Include="..\src\image.h" />
     <ClInclude Include="..\src\image_utility.h" />
+    <ClInclude Include="..\src\KalmanFilter.h" />
     <ClInclude Include="..\src\timer.h" />
     <ClInclude Include="..\src\vvector.h" />
   </ItemGroup>
@@ -33,6 +34,7 @@
     <ClCompile Include="..\src\ezsift.cpp" />
     <ClCompile Include="..\src\Frame.cpp" />
     <ClCompile Include="..\src\image_utility.cpp" />
+    <ClCompile Include="..\src\KalmanFilter.cpp" />
     <ClCompile Include="..\src\videoFFMPEG.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

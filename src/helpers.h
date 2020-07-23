@@ -428,11 +428,13 @@ void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Mat
     * A = | a, b |
     *     | c, d |
     *
-    * Q = | q1, q2 |
-    *     | q3, q4 |
+    * Q = | q1, q2, 0 |
+    *     | q3, q4, 0 |
+    *     |  0,  0, 1 |
     *
-    * R = | r1, r2 |
-    *     | r3, r4 |
+    * R = | r1, r2, 0 |
+    *     | r3, r4, 0 |
+    *     |  0,  0, 1 |
     *
     **/
 
@@ -448,32 +450,32 @@ void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Mat
     q3 = (c * b * c - c * a * d) / ((a * a + c * c) * tmpSqrt);
     q4 = (a * a * d - a * b * c) / ((a * a + c * c) * tmpSqrt);
 
-    r1 = (sqrtf(a * a + c * c) + tmpSqrt) / 2;
+    r1 = (sqrtf(a * a + c * c) + tmpSqrt) / 2.0;
     r2 = 0.0;
     r3 = 0.0;
     r4 = r1;
 
-    tmpQ << q1, q2, q3, q4;
-    tmpR << r1, r2, r3, r4;
+    //tmpQ << q1, q2, q3, q4;
+    //tmpR << r1, r2, r3, r4;
 
-    Q(0, 0) = tmpQ(0, 0);
-    Q(0, 1) = tmpQ(0, 1);
+    Q(0, 0) = q1;//tmpQ(0, 0);
+    Q(0, 1) = q2;//tmpQ(0, 1);
     Q(0, 2) = 0.0;
 
-    Q(1, 0) = tmpQ(1, 0);
-    Q(1, 1) = tmpQ(1, 1);
+    Q(1, 0) = q3;//tmpQ(1, 0);
+    Q(1, 1) = q4;//tmpQ(1, 1);
     Q(1, 2) = 0.0;
 
     Q(2, 0) = 0.0;
     Q(2, 1) = 0.0;
     Q(2, 2) = 1.0;
-
-    R(0, 0) = tmpR(0, 0);
+    cout << Q << endl << endl;
+    R(0, 0) = r1;//tmpR(0, 0);
     R(0, 1) = 0.0;
     R(0, 2) = 0.0;
 
     R(1, 0) = 0.0;
-    R(1, 1) = tmpR(1, 1);
+    R(1, 1) = r4;//tmpR(1, 1);
     R(1, 2) = 0.0;
 
     R(2, 0) = 0.0;
@@ -486,5 +488,114 @@ void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Mat
 
 }
 
+MatrixXd getCovFromH(vector<MatrixXd> vH) {
 
+    int iN = vH.size();
 
+    // rows -> observation, cols -> feature 
+    MatrixXd params(iN, 6); // N -> number of frames 
+
+    for (int i = 0; i < vH.size(); i++) {
+        params(i, 0) = vH[i](0, 0); //Q1
+        params(i, 1) = vH[i](0, 1); //Q2
+        params(i, 2) = vH[i](0, 2); //T1
+        params(i, 3) = vH[i](1, 0); //Q3
+        params(i, 4) = vH[i](1, 1); //Q4
+        params(i, 5) = vH[i](1, 2); //T2
+    }
+
+    MatrixXd centered = params.rowwise() - params.colwise().mean();
+    MatrixXd cov = (centered.adjoint() * centered) / float(params.rows() - 1);
+
+    return cov;
+}
+
+MatrixXd sum2affine(MatrixXd a1, MatrixXd a2) {
+    
+    Matrix2d A1;
+    A1(0, 0) = a1(0, 0);
+    A1(0, 1) = a1(0, 1);
+    A1(1, 0) = a1(1, 0);
+    A1(1, 1) = a1(1, 1);
+
+    MatrixXd b1(2, 1);
+    b1(0, 0) = a1(0, 2);
+    b1(1, 0) = a1(1, 2);
+
+    Matrix2d A2;
+    A2(0, 0) = a2(0, 0);
+    A2(0, 1) = a2(0, 1);
+    A2(1, 0) = a2(1, 0);
+    A2(1, 1) = a2(1, 1);
+
+    MatrixXd b2(2, 1);
+    b2(0, 0) = a2(0, 2);
+    b2(1, 0) = a2(1, 2);
+
+    Matrix2d A = A2 * A1;
+    MatrixXd b(2, 1);
+    b = (A2 * b1) + b2;
+
+    MatrixXd result(2, 3);
+
+    result(0, 0) = A(0, 0);
+    result(0, 1) = A(0, 1);
+    result(0, 2) = b(0, 0);
+    result(1, 0) = A(1, 0);
+    result(1, 1) = A(1, 1);
+    result(1, 2) = b(1, 0);
+
+    return result;
+}
+
+MatrixXd matrixHnorm(Matrix3f H) {
+
+    MatrixXd temp(2, 3);
+
+    temp(0, 0) = H(0, 0);
+    temp(0, 1) = H(0, 1);
+    temp(0, 2) = H(0, 2);
+    temp(1, 0) = H(1, 0);
+    temp(1, 1) = H(1, 1);
+    temp(1, 2) = H(1, 2);
+
+    return temp;
+}
+
+MatrixXd reshape(MatrixXd source) {
+
+    MatrixXd temp(2, 3);
+
+    temp(0, 0) = source(0, 0);
+    temp(0, 1) = source(1, 0);
+    temp(0, 2) = source(2, 0);
+    temp(1, 0) = source(3, 0);
+    temp(1, 1) = source(4, 0);
+    temp(1, 2) = source(5, 0);
+
+    return temp;
+
+}
+
+MatrixXd compensatingTransform(MatrixXd original, MatrixXd next) {
+
+    MatrixXd nextBlock = next.block<2, 2>(0, 0);
+    MatrixXd originalBlock = original.block<2, 2>(0, 0).inverse();
+    MatrixXd A = nextBlock * originalBlock;
+    MatrixXd b = (-A * original.block<2,1>(0, 2)) + next.block<2, 1>(0, 2);
+
+    MatrixXd tmp;
+    tmp = A.inverse();
+    A = tmp;
+
+    MatrixXd temp(2, 3);
+
+    temp(0, 0) = A(0, 0);
+    temp(0, 1) = A(0, 1);
+    temp(0, 2) = b(0, 0);
+    temp(1, 0) = A(1, 0);
+    temp(1, 1) = A(1, 1);
+    temp(1, 2) = b(1, 0);
+
+    return temp;
+}

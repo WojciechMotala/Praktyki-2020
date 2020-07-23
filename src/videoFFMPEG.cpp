@@ -9,6 +9,7 @@
 #include "Frame.h"
 #include "frameHelpers.h"
 #include "helpers.h"
+#include "KalmanFilter.h"
 
 using namespace std;
 using namespace Eigen;
@@ -130,16 +131,82 @@ int main() {
 
     iFrameCounter = 0;
 
-    for (int i = 0; i < vHmatrix.size(); i++) {
+    Matrix3f matrixZero;
+    matrixZero << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+
+    vT.push_back(matrixZero);
+    vQ.push_back(matrixZero);
+    vR.push_back(matrixZero);
+
+    for (int i = 1; i < vHmatrix.size(); i++) {
         matrixFactorisationH(vT, vQ, vR, vHmatrix[i]);
     }
 
+    vector<MatrixXd> vH;
+    //vector<Matrix3f> vH3f;
+
+    // Kalman
+        for (int i = 0; i < vHmatrix.size(); i++) {
+            vH.push_back(matrixHnorm(vR[i] * vT[i] * vQ[i]));
+            //vH3f.push_back(vT[i] * vQ[i] * vR[i]);
+        }
+        
+        MatrixXd R = getCovFromH(vH);
+        Eigen::Matrix< double, 6, 1> v;
+        v << 1e-8, 1e-7, 4e-3, 1e-7, 1e-8, 4e-3;
+        MatrixXd Q = v.array().matrix().asDiagonal();
+        v << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+        MatrixXd P = v.array().matrix().asDiagonal();
+        MatrixXd F = v.array().matrix().asDiagonal();
+        MatrixXd H = v.array().matrix().asDiagonal();
+        MatrixXd X(6, 1);
+        X.setZero();
+
+        KalmanFilter kf(X, F, H, P, Q, R);
+
+        MatrixXd cumulativeTransform(2, 3);
+        cumulativeTransform << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0;
+        MatrixXd lastAffine = cumulativeTransform;
+        MatrixXd cumulativeSmoothed = cumulativeTransform;
+
+        vector<MatrixXd> vHkf;
+
+        for (int i = 1; i < vHmatrix.size(); i++) {
+
+            cumulativeTransform = sum2affine(cumulativeTransform, vH[i]);
+
+            MatrixXd z(6, 1);
+            z(0, 0) = vH[i](0, 0); //q1
+            z(1, 0) = vH[i](0, 1); //q2
+            z(2, 0) = vH[i](0, 2); //t1
+            z(3, 0) = vH[i](1, 0); //q3
+            z(4, 0) = vH[i](1, 1); //q4
+            z(5, 0) = vH[i](1, 2); //t2
+
+            MatrixXd x1(6, 1);
+            x1 = kf.predictAndUpdate(z);
+
+            MatrixXd smoothedAffineMotion(2, 3);
+            smoothedAffineMotion = reshape(x1);
+
+            MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
+            MatrixXd tmp = affine_motion.inverse();
+            
+            vHkf.push_back(tmp);
+
+        }
+        
+
     iFrameCounter = 0;
-
+    
+    // Filtrowanie macierzy T, Q, R z zadanymi oknami
+    /* 
     for (int i = 0; i < vHmatrix.size(); i++) {
-        calcMeanTQR(vT, vQ, vR, vMeanT, vMeanQ, vMeanR, i, 30, 30, 30);
+        calcMeanTQR(vT, vQ, vR, vMeanT, vMeanQ, vMeanR, i, 50, 20, 10);
     }
+    */
 
+    // Filtrowanie macierzy H z zadanym oknem
     /*
     for (int i = 0; i < vHmatrix.size(); i++) {
         vHmean.push_back(calcMeanH(vHmatrix, iFrameCounter, 60));
@@ -175,14 +242,28 @@ int main() {
             clearImage(pframeNextCopy);
             drawSquare(pframeNextCopy, vMatchPairs[iFrameCounter - 1], false);
             //correctFrameByH(pframeNextCopy, vHmatrix[iFrameCounter]);
-            correctFrameByH(pframeNext, vHmean[iFrameCounter]);
+            //correctFrameByH(pframeNext, vHmean[iFrameCounter]);
         }
 
 
-        //correctFrameByH(pframeNext, vHmatrix[iFrameCounter]);
-        //correctFrameByH(pframeNext, vHmean[iFrameCounter]);
-        Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
+        //Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
+        //correctFrameByH(pframeNext, H);
+        
+        Matrix3f H;
+        H(0, 0) = vHkf[iFrameCounter](0, 0);
+        H(0, 1) = vHkf[iFrameCounter](0, 1);
+        H(0, 2) = vHkf[iFrameCounter](0, 2);
+        H(1, 0) = vHkf[iFrameCounter](1, 0);
+        H(1, 1) = vHkf[iFrameCounter](1, 1);
+        H(1, 2) = vHkf[iFrameCounter](1, 2);
+        H(2, 0) = 0.0;
+        H(2, 1) = 0.0;
+        H(2, 2) = 1.0;
+
         correctFrameByH(pframeNext, H);
+        
+
+        //correctFrameByH(pframeNext, vH3f[iFrameCounter]);
 
         // save frame to output file
         if (bfirstFrame) {
@@ -208,11 +289,14 @@ int main() {
         delete pframeNextCopy;
         pframe = pframeNext;
 
-        /*
+        
         // matrix mul
-        Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
-        vHmatrix[iFrameCounter + 1] = tempH;
-        */
+        //Matrix3f tempH = vHmatrix[iFrameCounter] * vHmatrix[iFrameCounter + 1];
+        //vHmatrix[iFrameCounter + 1] = tempH;
+
+        //Matrix3f tempH = vH3f[iFrameCounter] * vH3f[iFrameCounter + 1];
+        //vH3f[iFrameCounter + 1] = tempH;
+        
 
     }
 

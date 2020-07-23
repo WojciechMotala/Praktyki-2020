@@ -42,6 +42,9 @@
     <ClInclude Include="..\src\frameHelpers.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\KalmanFilter.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\ezsift.cpp">
@@ -54,6 +57,9 @@
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
     <ClCompile Include="..\src\videoFFMPEG.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\KalmanFilter.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
   </ItemGroup>
