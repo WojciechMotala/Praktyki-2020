@@ -469,7 +469,7 @@ void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Mat
     Q(2, 0) = 0.0;
     Q(2, 1) = 0.0;
     Q(2, 2) = 1.0;
-    cout << Q << endl << endl;
+    
     R(0, 0) = r1;//tmpR(0, 0);
     R(0, 1) = 0.0;
     R(0, 2) = 0.0;
@@ -582,11 +582,17 @@ MatrixXd compensatingTransform(MatrixXd original, MatrixXd next) {
     MatrixXd nextBlock = next.block<2, 2>(0, 0);
     MatrixXd originalBlock = original.block<2, 2>(0, 0).inverse();
     MatrixXd A = nextBlock * originalBlock;
-    MatrixXd b = (-A * original.block<2,1>(0, 2)) + next.block<2, 1>(0, 2);
+
+    MatrixXd nextBlockV = next.block<2, 1>(0, 2);
+    MatrixXd originalBlockV = original.block<2, 1>(0, 2);
+
+    MatrixXd b = ( -A * originalBlockV) + nextBlockV;
 
     MatrixXd tmp;
     tmp = A.inverse();
     A = tmp;
+
+    b = -A * b;
 
     MatrixXd temp(2, 3);
 

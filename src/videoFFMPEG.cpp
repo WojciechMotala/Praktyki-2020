@@ -146,12 +146,13 @@ int main() {
     //vector<Matrix3f> vH3f;
 
     // Kalman
-        for (int i = 0; i < vHmatrix.size(); i++) {
-            vH.push_back(matrixHnorm(vR[i] * vT[i] * vQ[i]));
+        for (int i = 1; i < vHmatrix.size(); i++) {
+            vH.push_back(matrixHnorm(vT[i] * vQ[i] * vR[i]));
+            //vH.push_back(matrixHnorm(vHmatrix[i]));
             //vH3f.push_back(vT[i] * vQ[i] * vR[i]);
         }
         
-        MatrixXd R = getCovFromH(vH);
+        MatrixXd R = getCovFromH(vH) * 1e-2;
         Eigen::Matrix< double, 6, 1> v;
         v << 1e-8, 1e-7, 4e-3, 1e-7, 1e-8, 4e-3;
         MatrixXd Q = v.array().matrix().asDiagonal();
@@ -166,15 +167,19 @@ int main() {
 
         MatrixXd cumulativeTransform(2, 3);
         cumulativeTransform << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0;
+        
         MatrixXd lastAffine = cumulativeTransform;
         MatrixXd cumulativeSmoothed = cumulativeTransform;
 
         vector<MatrixXd> vHkf;
+        MatrixXd tmp(2, 3);
+        tmp << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+        vHkf.push_back(tmp);
 
-        for (int i = 1; i < vHmatrix.size(); i++) {
-
+        for (int i = 0; i < vH.size(); i++) {
+            
             cumulativeTransform = sum2affine(cumulativeTransform, vH[i]);
-
+            
             MatrixXd z(6, 1);
             z(0, 0) = vH[i](0, 0); //q1
             z(1, 0) = vH[i](0, 1); //q2
@@ -185,13 +190,23 @@ int main() {
 
             MatrixXd x1(6, 1);
             x1 = kf.predictAndUpdate(z);
-
+            
+            //cout << i << endl << endl << x1 << endl << endl;
+            
             MatrixXd smoothedAffineMotion(2, 3);
             smoothedAffineMotion = reshape(x1);
+            
+            //cout << i << endl << endl << smoothedAffineMotion << endl << endl;
+            //cout << "cumulativeTransform:" << endl << cumulativeTransform << endl << endl;
 
             MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
             MatrixXd tmp = affine_motion.inverse();
             
+            //cout << "smoothedAffineMotion:" << endl << smoothedAffineMotion << endl << endl;
+            //cout << "affine_motion" << endl << affine_motion << endl << endl;
+            //cout << "=============================" << endl << endl;
+            
+
             vHkf.push_back(tmp);
 
         }
@@ -248,7 +263,7 @@ int main() {
 
         //Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
         //correctFrameByH(pframeNext, H);
-        
+        cout << iFrameCounter << endl;
         Matrix3f H;
         H(0, 0) = vHkf[iFrameCounter](0, 0);
         H(0, 1) = vHkf[iFrameCounter](0, 1);
@@ -259,6 +274,9 @@ int main() {
         H(2, 0) = 0.0;
         H(2, 1) = 0.0;
         H(2, 2) = 1.0;
+        
+        //cout << H << endl << endl;
+        //cout << H.inverse() << endl << endl;
 
         correctFrameByH(pframeNext, H);
         

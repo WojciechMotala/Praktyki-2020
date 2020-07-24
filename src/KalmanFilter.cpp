@@ -20,9 +20,11 @@ void KalmanFilter::update(MatrixXd z) {
 	MatrixXd S = (m_measurement * m_covariance_P) * m_measurement.transpose() + m_covariance_R;
 	MatrixXd K = (m_covariance_P * m_measurement.transpose()) * S.inverse();
 
-	MatrixXd y = z - (m_measurement * m_X);
+	//MatrixXd y = z - (m_measurement * m_X);
+	m_Y = z - (m_measurement * m_X);
 
-	m_X += K * y;
+	//m_X += K * y;
+	m_X += K * m_Y;
 
 	m_covariance_P -= (K * m_measurement) * m_covariance_P;
 }
