@@ -62,7 +62,7 @@ int main() {
             if (feof(f_in))
                 break;
             
-            /*
+            
 
             ezsift::Image<uint8_t> imageFirst;
             ezsift::Image<uint8_t> imageSecond;
@@ -101,7 +101,7 @@ int main() {
             //iFrameCounter++;
             //**********************************************************
             
-            */
+            
 
             // memory manage
             delete pframe;
@@ -115,8 +115,8 @@ int main() {
 
     
     //**********************************************************
-    vHmatrix.clear();
-    vHmatrix = readHmatrixfromFile();
+    //vHmatrix.clear();
+    //vHmatrix = readHmatrixfromFile();
     //**********************************************************
 
     // vectors of matrixes for single frame
