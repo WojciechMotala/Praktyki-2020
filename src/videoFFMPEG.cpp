@@ -32,14 +32,14 @@ int main() {
     vector <array<float, 3>> vRTdata;
     vector <list<ezsift::MatchPair>> vMatchPairs;
 
-    vector<Matrix3f> vHmatrix;
+    vector<Matrix3d> vHmatrix;
 
     array<float, 3> frameRT;
 
     // init for first frame
-    Matrix3f firstFrameH;
-    firstFrameH << 0, 0, 0, 0, 0, 0, 0, 0, 0;
-    vHmatrix.push_back(firstFrameH);
+    //Matrix3f firstFrameH;
+    //firstFrameH << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+    //vHmatrix.push_back(firstFrameH);
 
     fopen_s(&f_in, cInputFileName, "rb");
 
@@ -60,9 +60,9 @@ int main() {
             pframeNext->getFrame(f_in);
 
             if (feof(f_in))
-                break;
-            
-            
+                break;   
+
+            /*
 
             ezsift::Image<uint8_t> imageFirst;
             ezsift::Image<uint8_t> imageSecond;
@@ -101,6 +101,7 @@ int main() {
             //iFrameCounter++;
             //**********************************************************
             
+            */
             
 
             // memory manage
@@ -115,30 +116,30 @@ int main() {
 
     
     //**********************************************************
-    //vHmatrix.clear();
-    //vHmatrix = readHmatrixfromFile();
+    vHmatrix.clear();
+    vHmatrix = readHmatrixfromFile();
     //**********************************************************
 
     // vectors of matrixes for single frame
-    vector<Matrix3f> vHmean;
+    //vector<Matrix3f> vHmean;
 
-    vector<Matrix3f> vT; // translation
-    vector<Matrix3f> vQ; // rotation
-    vector<Matrix3f> vR; // scale
-    vector<Matrix3f> vMeanT;
-    vector<Matrix3f> vMeanQ;
-    vector<Matrix3f> vMeanR;
+    vector<Matrix3d> vT; // translation
+    vector<Matrix3d> vQ; // rotation
+    vector<Matrix3d> vR; // scale
+    //vector<Matrix3f> vMeanT;
+    //vector<Matrix3f> vMeanQ;
+    //vector<Matrix3f> vMeanR;
 
     iFrameCounter = 0;
 
-    Matrix3f matrixZero;
-    matrixZero << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    //Matrix3f matrixZero;
+    //matrixZero << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
-    vT.push_back(matrixZero);
-    vQ.push_back(matrixZero);
-    vR.push_back(matrixZero);
+    //vT.push_back(matrixZero);
+    //vQ.push_back(matrixZero);
+    //vR.push_back(matrixZero);
 
-    for (int i = 1; i < vHmatrix.size(); i++) {
+    for (int i = 0; i < vHmatrix.size(); i++) {
         matrixFactorisationH(vT, vQ, vR, vHmatrix[i]);
     }
 
@@ -146,11 +147,11 @@ int main() {
     //vector<Matrix3f> vH3f;
 
     // Kalman
-        for (int i = 1; i < vHmatrix.size(); i++) {
+        for (int i = 0; i < vHmatrix.size(); i++) {
             vH.push_back(matrixHnorm(vT[i] * vQ[i] * vR[i]));
             //vH.push_back(matrixHnorm(vHmatrix[i]));
-            //vH3f.push_back(vT[i] * vQ[i] * vR[i]);
         }
+
         
         MatrixXd R = getCovFromH(vH) * 1e-2;
         Eigen::Matrix< double, 6, 1> v;
@@ -172,14 +173,14 @@ int main() {
         MatrixXd cumulativeSmoothed = cumulativeTransform;
 
         vector<MatrixXd> vHkf;
-        MatrixXd tmp(2, 3);
-        tmp << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-        vHkf.push_back(tmp);
+        //MatrixXd tmp(2, 3);
+        //tmp << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+        //vHkf.push_back(tmp);
 
         for (int i = 0; i < vH.size(); i++) {
             
             cumulativeTransform = sum2affine(cumulativeTransform, vH[i]);
-            
+            cout << "affine:" << endl << vH[i] << endl << endl;
             MatrixXd z(6, 1);
             z(0, 0) = vH[i](0, 0); //q1
             z(1, 0) = vH[i](0, 1); //q2
@@ -197,17 +198,17 @@ int main() {
             smoothedAffineMotion = reshape(x1);
             
             //cout << i << endl << endl << smoothedAffineMotion << endl << endl;
-            //cout << "cumulativeTransform:" << endl << cumulativeTransform << endl << endl;
+            cout << "cumulativeTransform:" << endl << cumulativeTransform << endl << endl;
 
             MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
             MatrixXd tmp = affine_motion.inverse();
             
-            //cout << "smoothedAffineMotion:" << endl << smoothedAffineMotion << endl << endl;
-            //cout << "affine_motion" << endl << affine_motion << endl << endl;
-            //cout << "=============================" << endl << endl;
+            cout << "smoothedAffineMotion:" << endl << smoothedAffineMotion << endl << endl;
+            cout << "AffineMotion:" << endl << affine_motion << endl << endl;
+            cout << "=============================" << endl << endl;
             
-
-            vHkf.push_back(tmp);
+            
+            vHkf.push_back(affine_motion);
 
         }
         
@@ -241,7 +242,7 @@ int main() {
 
     while (!feof(f_in)) {
 
-        iFrameCounter++;
+        
 
         pframeNext = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
         Frame* pframeNextCopy = new Frame();
@@ -255,7 +256,7 @@ int main() {
 
         if (bOnlyPoints) {
             clearImage(pframeNextCopy);
-            drawSquare(pframeNextCopy, vMatchPairs[iFrameCounter - 1], false);
+            drawSquare(pframeNextCopy, vMatchPairs[iFrameCounter], false);
             //correctFrameByH(pframeNextCopy, vHmatrix[iFrameCounter]);
             //correctFrameByH(pframeNext, vHmean[iFrameCounter]);
         }
@@ -264,7 +265,7 @@ int main() {
         //Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
         //correctFrameByH(pframeNext, H);
         cout << iFrameCounter << endl;
-        Matrix3f H;
+        Matrix3d H;
         H(0, 0) = vHkf[iFrameCounter](0, 0);
         H(0, 1) = vHkf[iFrameCounter](0, 1);
         H(0, 2) = vHkf[iFrameCounter](0, 2);
@@ -290,7 +291,7 @@ int main() {
 
             if (bOnlyPoints) {
                 clearImage(pframe);
-                drawSquare(pframe, vMatchPairs[iFrameCounter - 1], true);
+                drawSquare(pframe, vMatchPairs[iFrameCounter], true);
                 pframe->saveFrame(f_out2);
             }
 
@@ -314,7 +315,7 @@ int main() {
 
         //Matrix3f tempH = vH3f[iFrameCounter] * vH3f[iFrameCounter + 1];
         //vH3f[iFrameCounter + 1] = tempH;
-        
+        iFrameCounter++;
 
     }
 

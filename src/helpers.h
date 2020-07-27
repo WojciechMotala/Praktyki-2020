@@ -119,15 +119,15 @@ void mulMat(float rotMat[], float theta) {
 
 }
 
-Matrix3f calcHmat(list<ezsift::MatchPair> match_list) {
+Matrix3d calcHmat(list<ezsift::MatchPair> match_list) {
 
     list<ezsift::MatchPair>::iterator pair;
 
     int iM = 3;
     int iN = match_list.size();
 
-    MatrixXf M1(iM, iN);
-    MatrixXf M2(iM, iN);
+    MatrixXd M1(iM, iN);
+    MatrixXd M2(iM, iN);
 
     int iCol;
 
@@ -143,7 +143,7 @@ Matrix3f calcHmat(list<ezsift::MatchPair> match_list) {
         M2(2, iCol) = 1;
     }
 
-    Matrix3f H = (M2 * M1.transpose()) * (M1 * M1.transpose()).inverse();
+    Matrix3d H = (M2 * M1.transpose()) * (M1 * M1.transpose()).inverse();
 
     //cout << H;
     return H;
@@ -364,7 +364,7 @@ void calcMeanTQR(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &v
     vMeanR.push_back(resultR);
 }
 
-void saveMatrixHtoFile(Matrix3f &vHmatrix) {
+void saveMatrixHtoFile(Matrix3d &vHmatrix) {
 
     ofstream myfile;
     myfile.open("../H.txt", std::ios::app);
@@ -381,14 +381,14 @@ void saveMatrixHtoFile(Matrix3f &vHmatrix) {
 
 }
 
-vector<Matrix3f> readHmatrixfromFile() {
-    vector<Matrix3f> vHmatrix;
+vector<Matrix3d> readHmatrixfromFile() {
+    vector<Matrix3d> vHmatrix;
 
     fstream myInfile;
-    myInfile.open("../H.txt", ios_base::in);
-    float a, b, c, d, e, f, g, h, i;
+    myInfile.open("../pythonH.txt", ios_base::in);
+    double a, b, c, d, e, f, g, h, i;
     while (myInfile >> a >> b >> c >> d >> e >> f >> g >> h >> i) {
-        Matrix3f tmp;
+        Matrix3d tmp;
         tmp << a, b, c, d, e, f, g, h, i;
         vHmatrix.push_back(tmp);
     }
@@ -396,10 +396,10 @@ vector<Matrix3f> readHmatrixfromFile() {
     return vHmatrix;
 }
 
-void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &vR, Matrix3f H) {
+void matrixFactorisationH(vector<Matrix3d> &vT, vector<Matrix3d> &vQ, vector<Matrix3d> &vR, Matrix3d H) {
 
     // Translation Matrix
-    Matrix3f T;
+    Matrix3d T;
     T(0, 0) = 1.0;
     T(0, 1) = 0.0;
     T(0, 2) = H(0, 2);
@@ -414,14 +414,14 @@ void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Mat
 
     // Rotation and Scale Matrix
  
-    Matrix3f Q;
-    Matrix3f R;
-    Matrix2f tmpQ;
-    Matrix2f tmpR;
+    Matrix3d Q;
+    Matrix3d R;
+    Matrix2d tmpQ;
+    Matrix2d tmpR;
 
-    float a, b, c, d,
-          q1, q2, q3, q4,
-          r1, r2, r3, r4;
+    double a, b, c, d,
+           q1, q2, q3, q4,
+           r1, r2, r3, r4;
 
     /**
     *
@@ -442,18 +442,29 @@ void matrixFactorisationH(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Mat
     b = H(0, 1);
     c = H(1, 0);
     d = H(1, 1);
-
+    /*
     float tmpSqrt = sqrtf((b * c * b * c - a * d * b * c - b * c * a * d + a * d * a * d) / (a * a + c * c));
 
     q1 = a / sqrtf((a * a) + (c * c));
     q2 = c / sqrtf((a * a) + (c * c));
     q3 = (c * b * c - c * a * d) / ((a * a + c * c) * tmpSqrt);
     q4 = (a * a * d - a * b * c) / ((a * a + c * c) * tmpSqrt);
+    */
+    q1 = a / (sqrt((a * a) + (c * c)));
+    q2 = -c / (sqrt((a * a) + (c * c)));
+    q3 = c / (sqrt((a * a) + (c * c)));
+    q4 = a / (sqrt((a * a) + (c * c)));
 
+    /*
     r1 = (sqrtf(a * a + c * c) + tmpSqrt) / 2.0;
     r2 = 0.0;
     r3 = 0.0;
     r4 = r1;
+    */
+    r1 = (sqrt((a * a) + (c * c)));
+    r2 = 0.0;
+    r3 = 0.0;
+    r4 = (a*d - b*c) / (sqrt((a * a) + (c * c)));
 
     //tmpQ << q1, q2, q3, q4;
     //tmpR << r1, r2, r3, r4;
@@ -506,7 +517,21 @@ MatrixXd getCovFromH(vector<MatrixXd> vH) {
 
     MatrixXd centered = params.rowwise() - params.colwise().mean();
     MatrixXd cov = (centered.adjoint() * centered) / float(params.rows() - 1);
-
+    
+    //-----
+    /*
+    cov.setZero();
+    //cout << cov << endl << endl;
+    
+    cov << 2.81848223e-04, 1.49008492e-05, -2.44911343e-01, -1.49008492e-05, 2.81848223e-04, -7.27238651e-02,
+        1.49008492e-05, 9.72367015e-05, -3.41686762e-02, -9.72367015e-05, 1.49008492e-05, 1.15999623e-01,
+        -2.44911343e-01, -3.41686762e-02, 3.01103615e+02, 3.41686762e-02, -2.44911343e-01, 5.96277716e+01,
+        -1.49008492e-05, -9.72367015e-05, 3.41686762e-02, 9.72367015e-05, -1.49008492e-05, -1.15999623e-01,
+        2.81848223e-04, 1.49008492e-05, -2.44911343e-01, -1.49008492e-05, 2.81848223e-04, -7.27238651e-02,
+        -7.27238651e-02, 1.15999623e-01, 5.96277716e+01, -1.15999623e-01, -7.27238651e-02, 2.16040337e+02;
+    //-----
+    */
+    cout << cov << endl;
     return cov;
 }
 
@@ -548,7 +573,7 @@ MatrixXd sum2affine(MatrixXd a1, MatrixXd a2) {
     return result;
 }
 
-MatrixXd matrixHnorm(Matrix3f H) {
+MatrixXd matrixHnorm(Matrix3d H) {
 
     MatrixXd temp(2, 3);
 

@@ -638,7 +638,7 @@ void correctFrameRotation(Frame* frame, float rotMat[]) {
 
 }
 
-void correctFrameByH(Frame* frame, Eigen::Matrix3f H) {
+void correctFrameByH(Frame* frame, Eigen::Matrix3d H) {
 
 	int iStrideWidthY = frame->getStrideWidthY();
 	int iHeightY = frame->getHeightY();
@@ -706,8 +706,8 @@ void correctFrameByH(Frame* frame, Eigen::Matrix3f H) {
 	for (int i = 0; i < iHeightY; i++) {
 		for (int j = 0; j < iWidthY; j++) {
 
-			Eigen::MatrixXf newXY(3, 1);
-			Eigen::MatrixXf oldXY(3, 1);
+			Eigen::MatrixXd newXY(3, 1);
+			Eigen::MatrixXd oldXY(3, 1);
 			oldXY(0) = j;
 			oldXY(1) = i;
 			oldXY(2) = 1;
@@ -727,8 +727,8 @@ void correctFrameByH(Frame* frame, Eigen::Matrix3f H) {
 	for (int i = 0; i < iHeightU; i++) {
 		for (int j = 0; j < iWidthU; j++) {
 
-			Eigen::MatrixXf newXY(3, 1);
-			Eigen::MatrixXf oldXY(3, 1);
+			Eigen::MatrixXd newXY(3, 1);
+			Eigen::MatrixXd oldXY(3, 1);
 			oldXY(0) = 2 * j;
 			oldXY(1) = 2 * i;
 			oldXY(2) = 1;
@@ -748,8 +748,8 @@ void correctFrameByH(Frame* frame, Eigen::Matrix3f H) {
 	for (int i = 0; i < iHeightV; i++) {
 		for (int j = 0; j < iWidthV; j++) {
 
-			Eigen::MatrixXf newXY(3, 1);
-			Eigen::MatrixXf oldXY(3, 1);
+			Eigen::MatrixXd newXY(3, 1);
+			Eigen::MatrixXd oldXY(3, 1);
 			oldXY(0) = 2 * j;
 			oldXY(1) = 2 * i;
 			oldXY(2) = 1;
