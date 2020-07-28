@@ -134,12 +134,12 @@ Matrix3d calcHmat(list<ezsift::MatchPair> match_list) {
     // populate matrixes
     for (iCol = 0, pair = match_list.begin(); pair != match_list.end(); pair++, iCol++) {
 
-        M1(0, iCol) = pair->c2;
-        M1(1, iCol) = pair->r2;
+        M1(0, iCol) = pair->c1;
+        M1(1, iCol) = pair->r1;
         M1(2, iCol) = 1;
 
-        M2(0, iCol) = pair->c1;
-        M2(1, iCol) = pair->r1;
+        M2(0, iCol) = pair->c2;
+        M2(1, iCol) = pair->r2;
         M2(2, iCol) = 1;
     }
 
@@ -385,7 +385,7 @@ vector<Matrix3d> readHmatrixfromFile() {
     vector<Matrix3d> vHmatrix;
 
     fstream myInfile;
-    myInfile.open("../pythonH.txt", ios_base::in);
+    myInfile.open("../H.txt", ios_base::in);
     double a, b, c, d, e, f, g, h, i;
     while (myInfile >> a >> b >> c >> d >> e >> f >> g >> h >> i) {
         Matrix3d tmp;
@@ -461,10 +461,10 @@ void matrixFactorisationH(vector<Matrix3d> &vT, vector<Matrix3d> &vQ, vector<Mat
     r3 = 0.0;
     r4 = r1;
     */
-    r1 = (sqrt((a * a) + (c * c)));
+    r1 = (sqrt((a * a) + (c * c)) + (a * d - b * c) / (sqrt((a * a) + (c * c)))) / 2;
     r2 = 0.0;
     r3 = 0.0;
-    r4 = (a*d - b*c) / (sqrt((a * a) + (c * c)));
+    r4 = r1;
 
     //tmpQ << q1, q2, q3, q4;
     //tmpR << r1, r2, r3, r4;
@@ -492,10 +492,31 @@ void matrixFactorisationH(vector<Matrix3d> &vT, vector<Matrix3d> &vQ, vector<Mat
     R(2, 0) = 0.0;
     R(2, 1) = 0.0;
     R(2, 2) = 1.0;
-
+    
     vT.push_back(T);
     vQ.push_back(Q);
     vR.push_back(R);
+
+    //cout << T << endl << Q << endl << R << endl << endl;
+
+
+    //=============================================================================
+    // H compare
+    //=============================================================================
+    /*
+    FILE* fp;
+    fp = fopen("H_th_05.txt", "a");
+
+    double theta = atan2(q3, q4) * 180 / 3.14159265358979323846;
+    double scale = r1;
+    double dx = T(0, 2);
+    double dy = T(1, 2);
+
+    fprintf(fp, "Theta: %10f Scale: %10f dx: %10f dy: %10f\n", theta, scale, dx, dy);
+
+    fclose(fp);
+    */
+    //=============================================================================
 
 }
 
@@ -531,7 +552,7 @@ MatrixXd getCovFromH(vector<MatrixXd> vH) {
         -7.27238651e-02, 1.15999623e-01, 5.96277716e+01, -1.15999623e-01, -7.27238651e-02, 2.16040337e+02;
     //-----
     */
-    cout << cov << endl;
+    //cout << cov << endl;
     return cov;
 }
 
