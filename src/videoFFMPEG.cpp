@@ -10,6 +10,7 @@
 #include "frameHelpers.h"
 #include "helpers.h"
 #include "KalmanFilter.h"
+#include "kalmantest.h"
 
 using namespace std;
 using namespace Eigen;
@@ -20,7 +21,7 @@ int main() {
     FILE* f_out;
     FILE* f_out2;
 
-    const char* cInputFileName = "../in_przes.yuv";
+    const char* cInputFileName = "../in_srednie.yuv";
     const char* cOutputFileName = "../out.yuv";
 
     // stride margin in %
@@ -99,8 +100,8 @@ int main() {
             vMatchPairs.push_back(match_list);
             
             //**********************************************************
-            saveMatrixHtoFile(vHmatrix[iFrameCounter]);
-            iFrameCounter++;
+            //saveMatrixHtoFile(vHmatrix[iFrameCounter]);
+            //iFrameCounter++;
             //**********************************************************
             
             
@@ -145,17 +146,26 @@ int main() {
         matrixFactorisationH(vT, vQ, vR, vHmatrix[i]);
     }
 
-    vector<MatrixXd> vH;
+    vector<Matrix3d> vH;
     //vector<Matrix3d> vH3f;
 
 
     // Kalman
         for (int i = 0; i < vHmatrix.size(); i++) {
-            vH.push_back(matrixHnorm(vT[i] * vQ[i] * vR[i]));
+            //vH.push_back(matrixHnorm(vT[i] * vQ[i] * vR[i]));
+                vH.push_back(vT[i] * vQ[i] * vR[i]);
+                
             //vH.push_back(matrixHnorm(vHmatrix[i]));
         }
+        
+        vector<Matrix3d> vHkf;
+        
+        
+        vHkf = kTest(vH);
+        
 
         
+        /*
         MatrixXd R = getCovFromH(vH) * 1e-2;
         Eigen::Matrix< double, 6, 1> v;
         v << 1e-8, 1e-7, 4e-3, 1e-7, 1e-8, 4e-3;
@@ -175,7 +185,7 @@ int main() {
         MatrixXd lastAffine = cumulativeTransform;
         MatrixXd cumulativeSmoothed = cumulativeTransform;
 
-        vector<MatrixXd> vHkf;
+        
         //MatrixXd tmp(2, 3);
         //tmp << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
         //vHkf.push_back(tmp);
@@ -203,7 +213,7 @@ int main() {
             //cout << i << endl << endl << smoothedAffineMotion << endl << endl;
             //cout << "cumulativeTransform:" << endl << cumulativeTransform << endl << endl;
 
-            MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
+              MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
             //MatrixXd tmp = affine_motion.inverse();
 
 
@@ -216,7 +226,7 @@ int main() {
             vHkf.push_back(affine_motion);
 
         }
-        
+        */
 
     iFrameCounter = 0;
     
@@ -270,7 +280,7 @@ int main() {
         //Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
         //correctFrameByH(pframeNext, H);
         cout << iFrameCounter << endl;
-        
+        /*
         Matrix3d H;
         H(0, 0) = vHkf[iFrameCounter](0, 0);
         H(0, 1) = vHkf[iFrameCounter](0, 1);
@@ -281,12 +291,12 @@ int main() {
         H(2, 0) = 0.0;
         H(2, 1) = 0.0;
         H(2, 2) = 1.0;
-        
+        */
         //cout << H << endl << endl;
         //cout << H.inverse() << endl << endl;
 
-        correctFrameByH(pframeNext, H);
-        
+        //correctFrameByH(pframeNext, H);
+        correctFrameByH(pframeNext, vHkf[iFrameCounter]);
         
 
         //correctFrameByH(pframeNext, vH3f[iFrameCounter]);

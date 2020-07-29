@@ -45,6 +45,9 @@
     <ClInclude Include="..\src\KalmanFilter.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\kalmantest.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\ezsift.cpp">

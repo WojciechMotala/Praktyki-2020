@@ -101,7 +101,7 @@ namespace ezsift {
 
     // default value of the nearest-neighbour distance ratio threshold
     // |DR_nearest|/|DR_2nd_nearest|<SIFT_MATCH_NNDR_THR is considered as a match.
-    static float SIFT_MATCH_NNDR_THR = 0.05f; //0.65
+    static float SIFT_MATCH_NNDR_THR = 0.20f; //0.65
 
 #if 0
     // intermediate type used for DoG pyramids
