@@ -53,14 +53,27 @@ vector<Matrix3d> kTest(vector<Matrix3d> H) {
 	Trajectory P_;// priori estimate error covariance
 	Trajectory K;//gain
 	Trajectory	z;//actual measurement
-	double pstd = 4e-3;//can be changed
-	double cstd = 0.25;//can be changed
-	Trajectory Q(pstd, pstd, pstd);// process noise covariance
-	Trajectory R(cstd, cstd, cstd);// measurement noise covariance 
+	double pstd = 4e-3;//can be changed //4e-3 
+	double cstd = 2.0;//can be changed //0.25
+	Trajectory Q(4e-3, 4e-3, 4e-3);// process noise covariance
+	Trajectory R(2.0, 5.0, 0.25);// measurement noise covariance 
 
 	int k = 1;
 
 	vector<Matrix3d> result;
+
+	FILE* fpX;
+	fpX = fopen("X.txt", "w");
+	FILE* fpY;
+	fpY = fopen("Y.txt", "w");
+	FILE* fpA;
+	fpA = fopen("A.txt", "w");
+	FILE* fpXe;
+	fpXe = fopen("Xe.txt", "w");
+	FILE* fpYe;
+	fpYe = fopen("Ye.txt", "w");
+	FILE* fpAe;
+	fpAe = fopen("Ae.txt", "w");
 
 	for (int i = 0; i < H.size(); i++) {
 
@@ -69,9 +82,15 @@ vector<Matrix3d> kTest(vector<Matrix3d> H) {
 		double dy = H[i](1, 2);
 		double da = atan2(H[i](1, 0), H[i](0, 0));
 
+		
+
 		x += dx;
 		y += dy;
 		a += da;
+
+		fprintf(fpX, "%f\n", x);
+		fprintf(fpY, "%f\n", y);
+		fprintf(fpA, "%f\n", a);
 
 		z = Trajectory(x, y, a);
 
@@ -100,6 +119,10 @@ vector<Matrix3d> kTest(vector<Matrix3d> H) {
 		dy = dy + diff_y;
 		da = da + diff_a;
 
+		fprintf(fpXe, "%f\n", X.x);
+		fprintf(fpYe, "%f\n", X.y);
+		fprintf(fpAe, "%f\n", X.a);
+
 		Matrix3d outH;
 		outH(0, 0) = cos(da);
 		outH(0, 1) = -sin(da);
@@ -115,6 +138,13 @@ vector<Matrix3d> kTest(vector<Matrix3d> H) {
 
 		k++;
 	}
+
+	fclose(fpX);
+	fclose(fpY);
+	fclose(fpA);
+	fclose(fpXe);
+	fclose(fpYe);
+	fclose(fpAe);
 
 	return result;
 }

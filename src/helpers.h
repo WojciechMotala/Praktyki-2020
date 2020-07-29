@@ -385,7 +385,7 @@ vector<Matrix3d> readHmatrixfromFile() {
     vector<Matrix3d> vHmatrix;
 
     fstream myInfile;
-    myInfile.open("../H.txt", ios_base::in);
+    myInfile.open("../H_srednie.txt", ios_base::in);
     double a, b, c, d, e, f, g, h, i;
     while (myInfile >> a >> b >> c >> d >> e >> f >> g >> h >> i) {
         Matrix3d tmp;

@@ -27,6 +27,7 @@ void KalmanFilter::update(MatrixXd z) {
 	m_X += K * m_Y;
 
 	m_covariance_P -= (K * m_measurement) * m_covariance_P;
+	
 }
 
 MatrixXd KalmanFilter::predictAndUpdate(MatrixXd z) {

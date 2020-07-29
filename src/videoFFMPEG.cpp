@@ -22,7 +22,7 @@ int main() {
     FILE* f_out2;
 
     const char* cInputFileName = "../in_srednie.yuv";
-    const char* cOutputFileName = "../out.yuv";
+    const char* cOutputFileName = "../out_srednie.yuv";
 
     // stride margin in %
     float fStrideMargin = 5.0;
@@ -63,7 +63,7 @@ int main() {
             if (feof(f_in))
                 break;   
 
-            
+            /*
 
             ezsift::Image<uint8_t> imageFirst;
             ezsift::Image<uint8_t> imageSecond;
@@ -100,11 +100,11 @@ int main() {
             vMatchPairs.push_back(match_list);
             
             //**********************************************************
-            //saveMatrixHtoFile(vHmatrix[iFrameCounter]);
-            //iFrameCounter++;
+            saveMatrixHtoFile(vHmatrix[iFrameCounter]);
+            iFrameCounter++;
             //**********************************************************
             
-            
+            */
             
 
             // memory manage
@@ -119,8 +119,8 @@ int main() {
 
     
     //**********************************************************
-    //vHmatrix.clear();
-    //vHmatrix = readHmatrixfromFile();
+    vHmatrix.clear();
+    vHmatrix = readHmatrixfromFile();
     //**********************************************************
 
     // vectors of matrixes for single frame
@@ -155,17 +155,19 @@ int main() {
             //vH.push_back(matrixHnorm(vT[i] * vQ[i] * vR[i]));
                 vH.push_back(vT[i] * vQ[i] * vR[i]);
                 
-            //vH.push_back(matrixHnorm(vHmatrix[i]));
+         
         }
         
         vector<Matrix3d> vHkf;
+        vHkf.clear();
         
-        
+        //KALMAN
         vHkf = kTest(vH);
         
-
         
+        // KALMAN DO PIERWSZEJ RAMKI 
         /*
+        
         MatrixXd R = getCovFromH(vH) * 1e-2;
         Eigen::Matrix< double, 6, 1> v;
         v << 1e-8, 1e-7, 4e-3, 1e-7, 1e-8, 4e-3;
@@ -210,12 +212,14 @@ int main() {
             MatrixXd smoothedAffineMotion(2, 3);
             smoothedAffineMotion = reshape(x1);
             
+
+
             //cout << i << endl << endl << smoothedAffineMotion << endl << endl;
             //cout << "cumulativeTransform:" << endl << cumulativeTransform << endl << endl;
 
-              MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
+            MatrixXd affine_motion = compensatingTransform(smoothedAffineMotion, cumulativeTransform);
             //MatrixXd tmp = affine_motion.inverse();
-
+            
 
             
             //cout << "smoothedAffineMotion:" << endl << smoothedAffineMotion << endl << endl;
@@ -224,26 +228,13 @@ int main() {
             
             
             vHkf.push_back(affine_motion);
+            
 
         }
         */
 
     iFrameCounter = 0;
     
-    // Filtrowanie macierzy T, Q, R z zadanymi oknami
-    /* 
-    for (int i = 0; i < vHmatrix.size(); i++) {
-        calcMeanTQR(vT, vQ, vR, vMeanT, vMeanQ, vMeanR, i, 50, 20, 10);
-    }
-    */
-
-    // Filtrowanie macierzy H z zadanym oknem
-    /*
-    for (int i = 0; i < vHmatrix.size(); i++) {
-        vHmean.push_back(calcMeanH(vHmatrix, iFrameCounter, 60));
-        iFrameCounter++;
-    }
-    */
 
     fopen_s(&f_in, cInputFileName, "rb");
     fopen_s(&f_out, cOutputFileName, "wb");
@@ -277,8 +268,6 @@ int main() {
         }
 
 
-        //Matrix3f H = vMeanT[iFrameCounter] * vMeanQ[iFrameCounter] * vMeanR[iFrameCounter];
-        //correctFrameByH(pframeNext, H);
         cout << iFrameCounter << endl;
         /*
         Matrix3d H;
@@ -292,14 +281,13 @@ int main() {
         H(2, 1) = 0.0;
         H(2, 2) = 1.0;
         */
-        //cout << H << endl << endl;
-        //cout << H.inverse() << endl << endl;
+
 
         //correctFrameByH(pframeNext, H);
         correctFrameByH(pframeNext, vHkf[iFrameCounter]);
         
 
-        //correctFrameByH(pframeNext, vH3f[iFrameCounter]);
+
 
         // save frame to output file
         if (bfirstFrame) {
@@ -325,13 +313,7 @@ int main() {
         delete pframeNextCopy;
         pframe = pframeNext;
 
-        
-        // matrix mul
-        //Matrix3d tempH = vH[iFrameCounter] * vH[iFrameCounter + 1];
-        //vH[iFrameCounter + 1] = tempH;
-
-        //Matrix3f tempH = vH3f[iFrameCounter] * vH3f[iFrameCounter + 1];
-        //vH3f[iFrameCounter + 1] = tempH;
+       
         iFrameCounter++;
 
     }
