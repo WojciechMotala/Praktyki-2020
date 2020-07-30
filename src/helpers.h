@@ -224,38 +224,38 @@ Matrix3f matrixHfilter(Matrix3f H) {
 
 }
 
-Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
+Matrix3d calcMeanH(vector<Matrix3d> vH, int iFrameNo, int iFilterWindow) {
 
-    vector<Matrix3f> vTempH;
+    vector<Matrix3d> vTempH;
     int iHCounter = 0;
 
     if (iFrameNo == 0) {
         return vH[0];
     }
-
+    /*
     if (iFrameNo == 1) {
         return vH[1];
     }
-
+    */
     vTempH.push_back(vH[iFrameNo]);
     iHCounter++;
 
-    for (int i = iFrameNo, j=0 ; i > 1; i--, j++) {
+    for (int i = iFrameNo, j=0 ; i > 0; i--, j++) {
         
         if (iHCounter == iFilterWindow)
             break;
 
-        Matrix3f tmp = vH[i - 1] * vTempH[j];
+        Matrix3d tmp = vH[i - 1] * vTempH[j];
 
-        tmp = matrixHfilter(tmp);
+        //tmp = matrixHfilter(tmp);
 
         vTempH.push_back(tmp);
         iHCounter++;
         
     }
 
-    Matrix3f result;
-    result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    Matrix3d result;
+    //result << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
     // calculate mean of matrixes in vector vTempH
  
@@ -268,11 +268,11 @@ Matrix3f calcMeanH(vector<Matrix3f> vH, int iFrameNo, int iFilterWindow) {
     return result;
 }
 
-void calcMeanTQR(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &vR, vector<Matrix3f> &vMeanT, vector<Matrix3f> &vMeanQ, vector<Matrix3f> &vMeanR, int iFrameNo, int iFilterWindowT, int iFilterWindowQ, int iFilterWindowR) {
+void calcMeanTQR(vector<Matrix3d> &vT, vector<Matrix3d> &vQ, vector<Matrix3d> &vR, vector<Matrix3d> &vMeanT, vector<Matrix3d> &vMeanQ, vector<Matrix3d> &vMeanR, int iFrameNo, int iFilterWindowT, int iFilterWindowQ, int iFilterWindowR) {
 
-    vector<Matrix3f> vTempT;
-    vector<Matrix3f> vTempQ;
-    vector<Matrix3f> vTempR;
+    vector<Matrix3d> vTempT;
+    vector<Matrix3d> vTempQ;
+    vector<Matrix3d> vTempR;
     int iTCounter = 0;
     int iQCounter = 0;
     int iRCounter = 0;
@@ -285,12 +285,14 @@ void calcMeanTQR(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &v
         return;
     }
 
+    /*
     if (iFrameNo == 1) {
         vMeanT.push_back(vT[1]);
         vMeanQ.push_back(vQ[1]);
         vMeanR.push_back(vR[1]);
         return;
     }
+    */
 
     vTempT.push_back(vT[iFrameNo]);
     vTempQ.push_back(vQ[iFrameNo]);
@@ -300,48 +302,45 @@ void calcMeanTQR(vector<Matrix3f> &vT, vector<Matrix3f> &vQ, vector<Matrix3f> &v
     iQCounter++;
     iRCounter++;
 
-    for (int i = iFrameNo, j = 0; i > 1; i--, j++) {
+    for (int i = iFrameNo, j = 0; i > 0; i--, j++) {
 
         if (iTCounter == iFilterWindowT)
             break;
 
-        Matrix3f tmp = vT[i - 1] * vTempT[j];
+        Matrix3d tmp = vT[i - 1] * vTempT[j];
 
         vTempT.push_back(tmp);
         iTCounter++;
 
     }
 
-    for (int i = iFrameNo, j = 0; i > 1; i--, j++) {
+    for (int i = iFrameNo, j = 0; i > 0; i--, j++) {
 
         if (iQCounter == iFilterWindowQ)
             break;
 
-        Matrix3f tmp = vQ[i - 1] * vTempQ[j];
+        Matrix3d tmp = vQ[i - 1] * vTempQ[j];
 
         vTempQ.push_back(tmp);
         iQCounter++;
 
     }
 
-    for (int i = iFrameNo, j = 0; i > 1; i--, j++) {
+    for (int i = iFrameNo, j = 0; i > 0; i--, j++) {
 
         if (iRCounter == iFilterWindowR)
             break;
 
-        Matrix3f tmp = vR[i - 1] * vTempR[j];
+        Matrix3d tmp = vR[i - 1] * vTempR[j];
 
         vTempR.push_back(tmp);
         iRCounter++;
 
     }
 
-    Matrix3f resultT;
-    Matrix3f resultQ;
-    Matrix3f resultR;
-    resultT << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-    resultQ << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-    resultR << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    Matrix3d resultT;
+    Matrix3d resultQ;
+    Matrix3d resultR;
     
     // calculate mean of matrixes in vector vTempH
 
@@ -539,20 +538,6 @@ MatrixXd getCovFromH(vector<MatrixXd> vH) {
     MatrixXd centered = params.rowwise() - params.colwise().mean();
     MatrixXd cov = (centered.adjoint() * centered) / float(params.rows() - 1);
     
-    //-----
-    /*
-    cov.setZero();
-    //cout << cov << endl << endl;
-    
-    cov << 2.81848223e-04, 1.49008492e-05, -2.44911343e-01, -1.49008492e-05, 2.81848223e-04, -7.27238651e-02,
-        1.49008492e-05, 9.72367015e-05, -3.41686762e-02, -9.72367015e-05, 1.49008492e-05, 1.15999623e-01,
-        -2.44911343e-01, -3.41686762e-02, 3.01103615e+02, 3.41686762e-02, -2.44911343e-01, 5.96277716e+01,
-        -1.49008492e-05, -9.72367015e-05, 3.41686762e-02, 9.72367015e-05, -1.49008492e-05, -1.15999623e-01,
-        2.81848223e-04, 1.49008492e-05, -2.44911343e-01, -1.49008492e-05, 2.81848223e-04, -7.27238651e-02,
-        -7.27238651e-02, 1.15999623e-01, 5.96277716e+01, -1.15999623e-01, -7.27238651e-02, 2.16040337e+02;
-    //-----
-    */
-    //cout << cov << endl;
     return cov;
 }
 
