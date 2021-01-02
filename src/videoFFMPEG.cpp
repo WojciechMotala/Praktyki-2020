@@ -15,14 +15,26 @@
 using namespace std;
 using namespace Eigen;
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    if (argc == 1)
+        return -1;
 
     FILE* f_in;
     FILE* f_out;
     FILE* f_out2;
 
-    const char* cInputFileName = "../in_przes.yuv";
-    const char* cOutputFileName = "../out_przes.yuv";
+    int iWidth = stoi(argv[1]);
+    int iHeight = stoi(argv[2]);
+
+    //const char* cInputFileName = "../in_przes.yuv";
+    const char* cInputFileName = argv[3];
+    const char* cOutputFileName = nullptr;
+
+    if(argc == 5)
+        cOutputFileName = argv[4];
+    else
+        cOutputFileName = "out.yuv";
 
     // stride margin in %
     float fStrideMargin = 1.0;
@@ -32,6 +44,12 @@ int main() {
     vector<Matrix3d> vHmatrix;
 
     fopen_s(&f_in, cInputFileName, "rb");
+    fseek(f_in, 0, SEEK_END);
+    int iFrameNo = ftell(f_in) / ( (iWidth * iHeight) + (iWidth * iHeight) / 2 );
+    fclose(f_in);
+    fopen_s(&f_in, cInputFileName, "rb");
+    //cout << iFrameNo << endl;
+
 
     // args: imageWidth, imageHeight, StrideWidth in %, StrideHeight in %
     Frame* pframe = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
@@ -42,16 +60,21 @@ int main() {
     bool bfirstFrame = true;
     
     pframe->getFrame(f_in);
+
+    iFrameCounter++;
+
+    cout << "Processing video.." << endl;
    
         while (!feof(f_in)) {
             
             pframeNext = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
             pframeNext->getFrame(f_in);
 
+            iFrameCounter++;
+            progressBar(iFrameCounter, iFrameNo);
+
             if (feof(f_in))
                 break;   
-
-            
 
             ezsift::Image<uint8_t> imageFirst;
             ezsift::Image<uint8_t> imageSecond;
@@ -82,7 +105,7 @@ int main() {
             // Match keypoints.
             match_keypoints(kpt_list_first, kpt_list_second, match_list);
 
-            cout << "liczba dopasowań: " << match_list.size() << endl;
+            //cout << "liczba dopasowań: " << match_list.size() << endl;
 
             vHmatrix.push_back( calcHmat(match_list) );
             vMatchPairs.push_back(match_list);
@@ -92,8 +115,6 @@ int main() {
             //iFrameCounter++;
             //**********************************************************
             
-            
-
             // memory manage
             delete pframe;
             pframe = pframeNext;
@@ -102,9 +123,10 @@ int main() {
     
     fclose(f_in);
 
+    cout << "Done." << endl << endl;
+
     delete pframe;
 
-    
     //**********************************************************
     //vHmatrix.clear();
     //vHmatrix = readHmatrixfromFile();
@@ -124,14 +146,13 @@ int main() {
     vector<Matrix3d> vH;
 
     // Kalman
-        for (int i = 0; i < vHmatrix.size(); i++) {
-                vH.push_back(vT[i] * vQ[i] * vR[i]);
-        }
+    for (int i = 0; i < vHmatrix.size(); i++) {
+            vH.push_back(vT[i] * vQ[i] * vR[i]);
+    }
         
-        vector<Matrix3d> vHkf;
-        vHkf.clear();
-        
-        vHkf = kTestTQR(vT, vQ, vR);
+    vector<Matrix3d> vHkf;
+    vHkf.clear();
+    vHkf = kTestTQR(vT, vQ, vR);
 
 
     fopen_s(&f_in, cInputFileName, "rb");
@@ -139,6 +160,8 @@ int main() {
 
     pframe = new Frame(1920, 1080, fStrideMargin, fStrideMargin);
     pframe->getFrame(f_in);
+
+    cout << "Move compensation.." << endl;
 
     while (!feof(f_in)) {
 
@@ -151,7 +174,7 @@ int main() {
             break;
         }
 
-        cout << iFrameCounter << endl;
+        //cout << iFrameCounter << endl;
 
         correctFrameByH(pframe, vHkf[iFrameCounter]);
 
@@ -163,10 +186,14 @@ int main() {
 
         iFrameCounter++;
 
+        progressBar(iFrameCounter, iFrameNo);
+
     }
 
     fclose(f_in);
     fclose(f_out);
+
+    cout << "Done." << endl << endl;
 
     delete pframe;
 

@@ -449,23 +449,23 @@ namespace ezsift {
         std::list<MatchPair>::iterator p;
         int match_idx = 0;
         
-        std::ofstream myfile;
-        myfile.open("match_x_y.txt", std::ios::app);
+        //std::ofstream myfile;
+        //myfile.open("match_x_y.txt", std::ios::app);
 
         for (p = match_list.begin(); p != match_list.end(); p++) {
             //printf("\tMatch %3d: (%4d, %4d) -> (%4d, %4d)\n", match_idx, p->r1,
                 //p->c1, p->r2, p->c2);
 
 
-            myfile << p->r1 << "\t" << p->c1 << "\t" << p->r2 << "\t" << p->c2 << "\n";
+            //myfile << p->r1 << "\t" << p->c1 << "\t" << p->r2 << "\t" << p->c2 << "\n";
 
 
             match_idx++;
         }
 #endif
 
-        myfile << "\n\n";
-        myfile.close();
+        //myfile << "\n\n";
+        //myfile.close();
         return 0;
     }
 

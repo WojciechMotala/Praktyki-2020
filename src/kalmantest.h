@@ -189,6 +189,7 @@ vector<Matrix3d> kTestTQR(vector<Matrix3d> vT, vector<Matrix3d> vQ, vector<Matri
 
 	vector<Matrix3d> result;
 
+	/*
 	FILE* fpX;
 	fpX = fopen("X.txt", "w");
 	FILE* fpY;
@@ -205,6 +206,7 @@ vector<Matrix3d> kTestTQR(vector<Matrix3d> vT, vector<Matrix3d> vQ, vector<Matri
 	fpAe = fopen("Ae.txt", "w");
 	FILE* fpSe;
 	fpSe = fopen("Se.txt", "w");
+	*/
 
 	for (int i = 0; i < vT.size(); i++) {
 
@@ -215,17 +217,19 @@ vector<Matrix3d> kTestTQR(vector<Matrix3d> vT, vector<Matrix3d> vQ, vector<Matri
 		double ds = vR[i](0, 0);
 		double dds = ds;
 
-		cout << ds << endl;
+		//cout << ds << endl;
 
 		x += dx;
 		y += dy;
 		a += da;
 		s += ds;
 
+		/*
 		fprintf(fpX, "%f\n", x);
 		fprintf(fpY, "%f\n", y);
 		fprintf(fpA, "%f\n", a);
 		fprintf(fpS, "%f\n", s);
+		*/
 
 		z = Trajectory(x, y, a, s);
 
@@ -256,11 +260,12 @@ vector<Matrix3d> kTestTQR(vector<Matrix3d> vT, vector<Matrix3d> vQ, vector<Matri
 		da = da + diff_a;
 		ds = ds + diff_s;
 
+		/*
 		fprintf(fpXe, "%f\n", X.x);
 		fprintf(fpYe, "%f\n", X.y);
 		fprintf(fpAe, "%f\n", X.a);
 		fprintf(fpSe, "%f\n", X.s);
-
+		*/
 
 		Matrix3d outH;
 		outH(0, 0) = cos(da);
@@ -278,6 +283,7 @@ vector<Matrix3d> kTestTQR(vector<Matrix3d> vT, vector<Matrix3d> vQ, vector<Matri
 		k++;
 	}
 
+	/*
 	fclose(fpX);
 	fclose(fpY);
 	fclose(fpA);
@@ -286,6 +292,7 @@ vector<Matrix3d> kTestTQR(vector<Matrix3d> vT, vector<Matrix3d> vQ, vector<Matri
 	fclose(fpYe);
 	fclose(fpAe);
 	fclose(fpSe);
+	*/
 
 	return result;
 }

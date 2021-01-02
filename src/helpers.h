@@ -1,4 +1,8 @@
 #include <Eigen/Dense>
+
+#define progressBarStr "##################################################"
+#define progressBarWidth 50
+
 using namespace std;
 using namespace Eigen;
 
@@ -635,4 +639,13 @@ MatrixXd compensatingTransform(MatrixXd original, MatrixXd next) {
     temp(1, 2) = b(1, 0);
 
     return temp;
+}
+
+void progressBar(double current, double max) {
+
+    int perecent = (current / max) * 100;
+    int lpad = (int)( (current / max) * progressBarWidth );
+    int rpad = progressBarWidth - lpad;
+    printf("%3d%% [%.*s%*s]\r", perecent, lpad, progressBarStr, rpad, "");
+    
 }
